@@ -230,17 +230,24 @@ func SendClientMessage(senderIP string, destSearchID uint64, message []byte) {
 	payload = append(payload, message...)
 
 	receiver.messageMutex.Lock()
-	defer receiver.messageMutex.Unlock()
-
 	if receiver.login == nil {
+		receiver.messageMutex.Unlock()
 		return
 	}
+	// Store the profile ID for later use if needed
+	profileID := receiver.login.ProfileID
+	// Clear the waker while holding the lock
+	receiver.messageAckWaker.Clear()
+	receiver.messageMutex.Unlock()
 
+	// Set up sleep management outside of lock
 	s := sleep.Sleeper{}
 	defer s.Done()
 
-	receiver.messageAckWaker.Clear()
+	// Brief lock to add the waker
+	receiver.messageMutex.Lock()
 	s.AddWaker(receiver.messageAckWaker)
+	receiver.messageMutex.Unlock()
 
 	timeWaker := sleep.Waker{}
 	s.AddWaker(&timeWaker)
@@ -251,27 +258,31 @@ func SendClientMessage(senderIP string, destSearchID uint64, message []byte) {
 			timeWaker.Assert()
 		})
 
+		// Network I/O without holding any locks
 		_, err := masterConn.WriteTo(payload, &destAddr)
 		if err != nil {
 			logging.Error(moduleName, "Error sending message:", err.Error())
 		}
 
-		// Wait for an ack or timeout
+		// Wait for an ack or timeout (no locks held)
 		switch s.Fetch(true) {
 		case &timeWaker:
 			timeOutCount++
 
-			// Enforce a 10 second timeout
+			// Enforce a 10s  timeout
 			if timeOutCount <= 10 {
 				break
 			}
 
 			logging.Error(moduleName, "Timed out waiting for ack")
-			// Kick the player
-			if login := receiver.login; login != nil {
-				gpErrorCallback(login.ProfileID, "network_error")
+
+			receiver.messageMutex.Lock()
+
+			if receiver.login != nil && receiver.login.ProfileID == profileID {
+				gpErrorCallback(profileID, "network_error")
 				receiver.login = nil
 			}
+			receiver.messageMutex.Unlock()
 			return
 
 		default:
