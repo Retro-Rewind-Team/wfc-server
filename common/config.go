@@ -38,6 +38,7 @@ type Config struct {
 	WiiCertPathDS string `xml:"wiiCertDerPathDS"`
 	KeyPathDS     string `xml:"keyPathDS"`
 
+	FriendBotPID string `xml:"friendBotPID"`
 	APISecret string `xml:"apiSecret"`
 
 	AllowDefaultDolphinKeys     bool   `xml:"allowDefaultDolphinKeys"`

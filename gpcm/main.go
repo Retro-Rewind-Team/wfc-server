@@ -68,13 +68,14 @@ var (
 	mutex               = deadlock.Mutex{}
 
 	allowDefaultDolphinKeys bool
+	config common.Config
 )
 
 func StartServer(reload bool) {
 	qr2.SetGPErrorCallback(KickPlayer)
 
 	// Get config
-	config := common.GetConfig()
+	config = common.GetConfig()
 
 	// Start SQL
 	dbString := fmt.Sprintf("postgres://%s:%s@%s/%s", config.Username, config.Password, config.DatabaseAddress, config.DatabaseName)
