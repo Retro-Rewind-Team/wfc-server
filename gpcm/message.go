@@ -209,10 +209,10 @@ func (g *GameSpySession) bestieMessage(command common.GameSpyCommand) {
 
 					// Kick the player(s)
 					if g.User.Restricted {
-						kickPlayer(toSession.User.ProfileId, resvError)
+						kickPlayer(toSession.User.ProfileId, resvError, resolveWWFCMessage(resvError))
 					}
 					if toSession.User.Restricted {
-						kickPlayer(g.User.ProfileId, resvError)
+						kickPlayer(g.User.ProfileId, resvError, resolveWWFCMessage(resvError))
 					}
 				}
 

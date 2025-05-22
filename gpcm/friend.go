@@ -251,7 +251,7 @@ func (g *GameSpySession) setStatus(command common.GameSpyCommand) {
 
 	if status == "3" && g.User.Restricted {
 		logging.Warn(g.ModuleName, "Restricted user searching for public rooms")
-		kickPlayer(g.User.ProfileId, "restricted_join")
+		kickPlayer(g.User.ProfileId, "restricted_join", WWFCMsgProfileRestricted)
 	}
 
 	g.LocString = locstring

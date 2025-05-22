@@ -1,72 +1,41 @@
 package gpcm
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 	"time"
 	"wwfc/common"
+	"wwfc/database"
+	"wwfc/logging"
 	"wwfc/qr2"
+
+	"github.com/logrusorgru/aurora/v3"
 )
 
-func kickPlayer(profileID uint32, reason string) {
-	pids := []uint32{profileID}
+func resolveWWFCMessage(reason string) WWFCErrorMessage {
+	switch reason {
+	case "banned":
+		return WWFCMsgProfileBannedTOSNow
 
-	if session, exists := sessions[profileID]; exists {
-		errorMessage := WWFCMsgKickedGeneric
+	case "restricted":
+		return WWFCMsgProfileRestrictedNow
 
-		switch reason {
-		case "banned":
-			errorMessage = WWFCMsgProfileBannedTOSNow
+	case "restricted_join":
+		return WWFCMsgProfileRestricted
 
-		case "restricted":
-			errorMessage = WWFCMsgProfileRestrictedNow
+	case "moderator_kick":
+		return WWFCMsgKickedModerator
 
-		case "restricted_join":
-			errorMessage = WWFCMsgProfileRestricted
+	case "room_kick":
+		return WWFCMsgKickedRoomHost
 
-		case "moderator_kick":
-			errorMessage = WWFCMsgKickedModerator
+	case "invalid_elo":
+		return WWFCMsgInvalidELO
 
-		case "room_kick":
-			errorMessage = WWFCMsgKickedRoomHost
-
-		case "invalid_elo":
-			errorMessage = WWFCMsgInvalidELO
-
-		case "network_error":
-			// No error message
-			common.CloseConnection(ServerName, session.ConnIndex)
-			return
-		}
-
-		gpError := GPError{
-			ErrorCode:   ErrConnectionClosed.ErrorCode,
-			ErrorString: "The player was kicked from the server. Reason: " + reason,
-			Fatal:       true,
-			WWFCMessage: errorMessage,
-		}
-
-		for _, match := range findMatchingSessions(session) {
-			pids = append(pids, match.User.ProfileId)
-			match.replyError(gpError)
-		}
-
-		session.replyError(gpError)
 	}
 
-	// After 3 seconds, send kick order to all players
-	// This is to prevent the restricted player from staying in the group if he ignores the GPCM kick
-	go func() {
-		time.AfterFunc(3*time.Second, func() {
-			qr2.OrderKickFromGroups(pids)
-		})
-	}()
-}
-
-func KickPlayer(profileID uint32, reason string) {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	kickPlayer(profileID, reason)
+	return WWFCMsgKickedGeneric
 }
 
 func findMatchingSessions(badSession *GameSpySession) []*GameSpySession {
@@ -114,13 +83,44 @@ func findMatchingSessions(badSession *GameSpySession) []*GameSpySession {
 	return ret
 }
 
-func KickPlayerCustomMessage(profileID uint32, reason string, message WWFCErrorMessage) {
+func KickPlayer(profileID uint32, reason string, message WWFCErrorMessage) error {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	pids := []uint32{profileID}
+	return kickPlayer(profileID, reason, message)
+}
+
+func kickPlayer(profileID uint32, reason string, message WWFCErrorMessage) error {
+	var ret error
+
+	// IP Format Functions could panic, so better safe than sorry...
+	defer func() {
+		if r := recover(); r != nil {
+			if nerr, ok := r.(error); ok {
+				ret = nerr
+			} else {
+				ret = errors.New(fmt.Sprintf("%s", r))
+			}
+		}
+
+		if ret != nil {
+			logging.Error("GPCM/Kick", "Error while kicking pid", aurora.Cyan(profileID), ret)
+		}
+	}()
+
+	kickInfo := []qr2.PIDIPPair{}
 
 	if session, exists := sessions[profileID]; exists {
+		// Special exception, I don't really like this but it's behavior left over form wfc server
+		if reason == "network_error" {
+			common.CloseConnection(ServerName, session.ConnIndex)
+
+			return nil
+		}
+
+		ip, _ := common.IPFormatToInt(session.RemoteAddr)
+		kickInfo = append(kickInfo, qr2.PIDIPPair{PID: profileID, IP: uint32(ip)})
+
 		gpError := GPError{
 			ErrorCode:   ErrConnectionClosed.ErrorCode,
 			ErrorString: "The player was kicked from the server. Reason: " + reason,
@@ -130,23 +130,34 @@ func KickPlayerCustomMessage(profileID uint32, reason string, message WWFCErrorM
 		}
 
 		for _, match := range findMatchingSessions(session) {
-			pids = append(pids, match.User.ProfileId)
+			matchIP, _ := common.IPFormatToInt(match.RemoteAddr)
+			kickInfo = append(kickInfo, qr2.PIDIPPair{PID: match.User.ProfileId, IP: uint32(matchIP)})
 
-			mutex.Unlock()
 			match.replyError(gpError)
-			mutex.Lock()
 		}
 
-		mutex.Unlock()
 		session.replyError(gpError)
-		mutex.Lock()
+	} else { // If no session is found, get the IP from the Database
+		user, err := database.GetProfile(pool, ctx, profileID)
+
+		var ip int32
+		if err != nil {
+			// Set ret to be returned later, but still kick just off of the PID
+			ret = err
+		} else {
+			ip, _ = common.IPFormatToInt(user.LastIPAddress)
+		}
+
+		kickInfo = append(kickInfo, qr2.PIDIPPair{PID: user.ProfileId, IP: uint32(ip)})
 	}
 
 	// After 3 seconds, send kick order to all players
 	// This is to prevent the restricted player from staying in the group if he ignores the GPCM kick
 	go func() {
 		time.AfterFunc(3*time.Second, func() {
-			qr2.OrderKickFromGroups(pids)
+			qr2.OrderKickFromGroups(kickInfo)
 		})
 	}()
+
+	return ret
 }

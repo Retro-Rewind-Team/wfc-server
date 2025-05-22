@@ -73,7 +73,9 @@ var (
 
 
 func StartServer(reload bool) {
-	qr2.SetGPErrorCallback(KickPlayer)
+	qr2.SetGPErrorCallback(func(pid uint32, reason string) {
+		kickPlayer(pid, reason, resolveWWFCMessage(reason))
+	})
 
 	// Get config
 	config = common.GetConfig()
