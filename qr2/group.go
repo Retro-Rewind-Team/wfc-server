@@ -584,17 +584,22 @@ func loadGroups() error {
 	return nil
 }
 
+type PIDIPPair struct {
+	PID uint32
+	IP  uint32
+}
+
 // Send kick order to all QR2-authenticated session to kick a player from their group
-func OrderKickFromGroups(profilesToKick []uint32) {
+func OrderKickFromGroups(playersToKick []PIDIPPair) {
 	// QR2 messages are limited at 0x80 in length. With a 7-byte header and a
 	// byte for length, that leaves 120 bytes worth of pids, thus 30 4-byte
-	// integers. Surely more than 30 online pids won't match at once :)
+	// integers. Surely more than 15 online players won't match at once :)
 
 	moduleName := "QR2:OrderKickFromGroup/"
 
-	iterMax := min(len(profilesToKick), 30)
-	for i := 0; i < iterMax; i++ {
-		moduleName += strconv.FormatUint(uint64(profilesToKick[i]), 10)
+	iterMax := min(len(playersToKick), 15)
+	for i := range iterMax {
+		moduleName += strconv.FormatUint(uint64(playersToKick[i].PID), 10)
 
 		if i+1 != iterMax {
 			moduleName += ", "
@@ -609,9 +614,10 @@ func OrderKickFromGroups(profilesToKick []uint32) {
 		message := createResponseHeader(ClientKickPeerOrder, session.SessionID) // 7 byte header
 		message = append(message, byte(iterMax))                                // 1 byte len
 
-		for i := 0; i < iterMax; i++ {
+		for i := range iterMax {
 			// All 4 bytes, preserves alignment
-			message = binary.BigEndian.AppendUint32(message, profilesToKick[i])
+			message = binary.BigEndian.AppendUint32(message, playersToKick[i].PID)
+			message = binary.BigEndian.AppendUint32(message, playersToKick[i].IP)
 		}
 
 		_, err := masterConn.WriteTo(message, &session.Addr)

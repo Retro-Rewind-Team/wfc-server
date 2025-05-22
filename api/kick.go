@@ -30,7 +30,7 @@ func handleKickImpl(req KickRequest, _ bool) (*database.User, int, error) {
 		return nil, http.StatusBadRequest, ErrReason
 	}
 
-	gpcm.KickPlayerCustomMessage(req.ProfileID, req.Reason, gpcm.WWFCMsgKickedCustom)
+	gpcm.KickPlayer(req.ProfileID, req.Reason, gpcm.WWFCMsgKickedCustom)
 
 	user, err := database.GetProfile(pool, ctx, req.ProfileID)
 

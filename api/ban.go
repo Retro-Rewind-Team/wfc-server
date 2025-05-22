@@ -53,7 +53,7 @@ func handleBanImpl(req BanRequest, _ bool) (*database.User, int, error) {
 		return nil, http.StatusInternalServerError, ErrTransaction
 	}
 
-	gpcm.KickPlayerCustomMessage(req.ProfileID, req.Reason, gpcm.WWFCMsgProfileRestrictedCustom)
+	gpcm.KickPlayer(req.ProfileID, req.Reason, gpcm.WWFCMsgProfileRestrictedCustom)
 
 	user, err := database.GetProfile(pool, ctx, req.ProfileID)
 
