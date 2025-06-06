@@ -76,6 +76,11 @@ func (client *NATNEGClient) sendConnectRequestPacket(conn net.PacketConn, destin
 }
 
 func (session *NATNEGSession) handleConnectReply(conn net.PacketConn, addr net.Addr, buffer []byte, moduleName string, version byte) {
+	if len(buffer) < 2 {
+		logging.Error(moduleName, "Invalid packet size")
+		return
+	}
+
 	// portType := buffer[0]
 	clientIndex := buffer[1]
 	// useGamePort := buffer[2]
