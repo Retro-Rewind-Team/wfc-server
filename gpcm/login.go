@@ -335,6 +335,8 @@ func (g *GameSpySession) login(command common.GameSpyCommand) {
 		cmdProfileId = uint32(cmdProfileId2)
 	}
 
+	logging.Info(g.ModuleName, "Attempting to log in to PID", aurora.Cyan(cmdProfileId))
+
 	if !g.performLoginWithDatabase(userId, gsbrcd, cmdProfileId, deviceId, deviceAuth, csnum) {
 		return
 	}
