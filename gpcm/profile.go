@@ -1,6 +1,7 @@
 package gpcm
 
 import (
+	"errors"
 	"strconv"
 	"wwfc/common"
 	"wwfc/database"
@@ -97,18 +98,35 @@ func (g *GameSpySession) updateProfile(command common.GameSpyCommand) {
 	g.User.UpdateProfile(pool, ctx, command.OtherValues)
 }
 
-func SetSessionDiscordID(profileId uint32, discordId string) {
+var ErrNoSession = errors.New("Session not found for given profileID")
+
+func SetSessionDiscordInfo(profileId uint32, stage database.LinkStage, discordId string) error {
 	mutex.Lock()
 	defer mutex.Unlock()
 
 	if session, exists := sessions[profileId]; exists {
+		session.User.LinkStage = stage
 		session.User.DiscordID = discordId
-		logging.Info("GPCM", "Set Discord ID for profile", aurora.Cyan(profileId), "to", aurora.Cyan(discordId))
+		logging.Info("GPCM", "Set Discord ID for profile", aurora.Cyan(profileId), "to", aurora.Cyan(discordId), "stage", aurora.Cyan(stage))
+
+		return nil
 	} else {
 		logging.Info("GPCM", "Session not found for profile ID", aurora.Cyan(profileId))
-	}
 
-	
+		return ErrNoSession
+	}
+}
+
+func GetSessionDiscordInfo(profileId uint32) (database.LinkStage, string, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if session, exists := sessions[profileId]; exists {
+		return session.User.LinkStage, session.User.DiscordID, nil
+	} else {
+		logging.Info("GPCM", "Session not found for profile ID", aurora.Cyan(profileId))
+		return 0, "", ErrNoSession
+	}
 }
 
 func VerifyPlayerSearch(profileId uint32, sessionKey int32, gameName string) (string, bool) {

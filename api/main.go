@@ -291,7 +291,12 @@ func handleRequestInner(spec RouteSpec, w http.ResponseWriter, r *http.Request, 
 		for i := 0; i < spec.ReqType.NumField(); i++ {
 			fieldInfo := spec.ReqType.Field(i)
 			field := req.Field(i)
-			*msg += fmt.Sprintf("%s: %v\n", fieldInfo.Name, aurora.Cyan(field))
+
+			// Don't log the secret. Leaving it accessible in log files is
+			// likely a bad idea.
+			if fieldInfo.Name != "Secret" {
+				*msg += fmt.Sprintf("%s: %v\n", fieldInfo.Name, aurora.Cyan(field))
+			}
 		}
 	}
 

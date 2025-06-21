@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"wwfc/common"
+	"wwfc/database"
 	"wwfc/logging"
 	"wwfc/qr2"
 
@@ -63,20 +64,13 @@ func (g *GameSpySession) getAuthorizedFriendIndex(profileId uint32) int {
 }
 
 func (g *GameSpySession) handleFriendBot() {
-
-	if g.User.DiscordID != "1" {
-		logging.Warn(g.ModuleName, "FriendBot is added but verification is not initialized, currently", g.User.DiscordID)
+	if g.User.LinkStage != database.LS_STARTED {
+		logging.Warn(g.ModuleName, "FriendBot is added but verification for PID", aurora.Cyan(g.User.ProfileId), "is not initialized, currently", g.User.DiscordID)
 		return
 	}
-	
-	logging.Info(g.ModuleName, "FriendBot verification progressed to step 2")
-	SetSessionDiscordID(g.User.ProfileId, "2")
-	err := g.User.UpdateDiscordID(pool, ctx, "2")
-	if err != nil {
-		logging.Error(g.ModuleName, "Failed to update discord ID:", err)
-	return
-	
-	}
+
+	logging.Info(g.ModuleName, "FriendBot verification progressed to step 2 for PID", aurora.Cyan(g.User.ProfileId))
+	g.User.LinkStage = database.LS_FRIENDED
 }
 
 const (
@@ -96,7 +90,7 @@ func (g *GameSpySession) addFriend(command common.GameSpyCommand) {
 	strNewProfileId := command.OtherValues["newprofileid"]
 
 	if strNewProfileId == config.FriendBotPID {
-		logging.Info(g.ModuleName, "Attempt to add FriendBot as a friend")
+		logging.Info(g.ModuleName, aurora.Cyan(g.User.ProfileId), "Attempt to add FriendBot as a friend")
 		g.handleFriendBot()
 	}
 	newProfileId, err := strconv.ParseUint(strNewProfileId, 10, 32)

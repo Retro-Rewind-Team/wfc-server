@@ -5,8 +5,10 @@ import (
 	"errors"
 	"math/rand"
 	"time"
+	"wwfc/logging"
 
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/logrusorgru/aurora/v3"
 )
 
 const (
@@ -31,6 +33,15 @@ const (
 	UpdateMKWFriendInfoQuery = `UPDATE users SET mariokartwii_friend_info = $2 WHERE profile_id = $1`
 )
 
+type LinkStage byte
+
+const (
+	LS_NONE LinkStage = iota
+	LS_STARTED
+	LS_FRIENDED
+	LS_FINISHED
+)
+
 type User struct {
 	ProfileId          uint32
 	UserId             uint64
@@ -48,6 +59,9 @@ type User struct {
 	LastIPAddress      string
 	Csnum              []string
 	DiscordID          string
+	// Not stored, set during discord linking and inferred LS_FINISHED from
+	// DiscordID != "" on profile load
+	LinkStage LinkStage
 	// Following fields only used in GetUser query
 	BanModerator    string
 	BanReasonHidden string
@@ -106,10 +120,12 @@ func (user *User) UpdateProfileID(pool *pgxpool.Pool, ctx context.Context, newPr
 	return err
 }
 
-func (user *User) UpdateDiscordID(pool *pgxpool.Pool, ctx context.Context, discordId string) error {
-	_, err := pool.Exec(ctx, UpdateDiscordID, user.ProfileId, discordId)
+func (user *User) UpdateDiscordID(pool *pgxpool.Pool, ctx context.Context, discordID string) error {
+	_, err := pool.Exec(ctx, UpdateDiscordID, user.ProfileId, discordID)
 	if err == nil {
-		user.DiscordID = discordId
+		user.DiscordID = discordID
+	} else {
+		logging.Error("DB", "Failed to persist DiscordID", aurora.Cyan(discordID), "for profile", aurora.Cyan(user.ProfileId), "error:", aurora.Cyan(err))
 	}
 	return err
 }
@@ -198,6 +214,7 @@ func GetProfile(pool *pgxpool.Pool, ctx context.Context, profileId uint32) (User
 
 	if discordID != nil {
 		user.DiscordID = *discordID
+		user.LinkStage = LS_FINISHED
 	}
 
 	return user, nil

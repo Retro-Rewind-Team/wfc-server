@@ -7,79 +7,121 @@ import (
 	"wwfc/gpcm"
 )
 
-
 type LinkRequest struct {
-		Secret    string `json:"secret"`
-		ProfileID uint32 `json:"pid"`
-		DiscordID string `json:"discordId"`
-		Action    string `json:"action"`
+	Secret    string `json:"secret"`
+	ProfileID uint32 `json:"pid"`
+	DiscordID string `json:"discordId"`
+	Action    string `json:"action"`
 }
 
-var LinkRoute = MakeRouteSpec[LinkRequest, UserActionResponse](
+type LinkResponse struct {
+	Success bool
+	Error   string
+}
+
+var LinkRoute = MakeRouteSpec[LinkRequest, LinkResponse](
 	true,
 	"/api/link",
-	func(req any, v bool, _ *http.Request) (any, int, error) {
-		return handleUserAction(req.(LinkRequest), v, HandleLink)
-	},
+	HandleLink,
 	http.MethodPost,
 )
 
 var (
-	ErrPIDIsMissing = errors.New("Profile ID missing or invalid")
-	ErrDiscordIDMissing = errors.New("Discord ID missing or invalid")
-	ErrDiscordLinked	    = errors.New("Discord ID already linked to another profile")
-	ErrDiscordWrongStep	    = errors.New("Profile is not in the correct step to link Discord ID")
-	ErrDiscordCannotUnlink  = errors.New("Discord ID cannot be unlinked")
-	ErrActionMissing        = errors.New("Action missing in request")
+	ErrActionMissing       = errors.New("Action missing in request")
+	ErrDiscordIDMissing    = errors.New("Discord ID missing or invalid")
+	ErrDiscordLinked       = errors.New("Discord ID already linked to another profile")
+	ErrDiscordWrongStep    = errors.New("Profile is not in the correct step to link Discord ID")
+	ErrDiscordCannotUnlink = errors.New("Discord ID cannot be unlinked")
 )
 
-func HandleLink(req LinkRequest, _ bool) (*database.User, int, error) {
-	var err error
+// Linking process proceeds as follows:
+// 1. "link" action is sent. Set the stage to LS_STARTED. Begin sending
+//    "check" intermittently.
+// 2. gpcm/friend::handleFriendBot can be used to friend the profile now, and
+//    advances the stage to LS_FRIENDED
+// 3. "check" action is received, progress the stage to LS_FINISHED, persist
+//    the Discord ID permanently.
 
-	if req.ProfileID == 0 {
-		return nil, http.StatusBadRequest, ErrPIDIsMissing
+func HandleLink(req any, _ bool, _ *http.Request) (any, int, error) {
+	_req := req.(LinkRequest)
+	res := LinkResponse{}
+
+	if _req.ProfileID == 0 {
+		return res, http.StatusBadRequest, ErrPIDMissing
 	}
 
-	if  req.DiscordID == "" {
-		return nil, http.StatusBadRequest, ErrDiscordIDMissing
+	if _req.DiscordID == "" {
+		return res, http.StatusBadRequest, ErrDiscordIDMissing
 	}
 
-	if req.Action == "" || (req.Action != "link" && req.Action != "check" && req.Action != "unlink") {
-		return nil, http.StatusBadRequest, ErrActionMissing
+	if _req.Action == "" || (_req.Action != "link" && _req.Action != "check" && _req.Action != "unlink") {
+		return res, http.StatusBadRequest, ErrActionMissing
 	}
 
-	user, success := database.GetProfile(pool, ctx, req.ProfileID)
-	if success != nil {
-		return nil, http.StatusInternalServerError, ErrUserQuery
+	linkStage, discordID, err := gpcm.GetSessionDiscordInfo(_req.ProfileID)
+	if err != nil {
+		return res, http.StatusInternalServerError, gpcm.ErrNoSession
 	}
 
-	if req.Action == "link" {
-		if user.DiscordID != "" {
-			return nil, http.StatusForbidden, ErrDiscordLinked
+	if _req.Action == "link" {
+		// LinkStage is not persisted in the DB (so if the server resets in the
+		// middle of linking, nothing has persisted so it cannot get stuck in
+		// an invalid state). Field is inferred to be LS_FINISHED on load from
+		// DB if the DiscordID is non-null
+		if linkStage == database.LS_FINISHED {
+			return res, http.StatusForbidden, ErrDiscordLinked
 		}
-		gpcm.SetSessionDiscordID(user.ProfileId, "1")
-		err = user.UpdateDiscordID(pool, ctx, "1")
+
+		if linkStage != database.LS_NONE {
+			return res, http.StatusForbidden, ErrDiscordWrongStep
+		}
+
+		// Set the stage and the ID on the session upon link request so the
+		// in-progress link can't be impacted by anyone else, but it's not
+		// persisted yet.
+		if gpcm.SetSessionDiscordInfo(_req.ProfileID, database.LS_STARTED, _req.DiscordID) != nil {
+			return res, http.StatusInternalServerError, gpcm.ErrNoSession
+		}
+	} else if _req.Action == "check" {
+		// Once the user friends the correct code, the stage progresses from
+		// LS_STARTED to LS_FRIENDED. See gpcm/friend::handleFriendBot
+		if linkStage != database.LS_FRIENDED {
+			return res, http.StatusForbidden, ErrDiscordWrongStep
+		}
+
+		user, err := database.GetProfile(pool, ctx, _req.ProfileID)
 		if err != nil {
-			return nil, http.StatusInternalServerError, err
+			return res, http.StatusInternalServerError, ErrUserQuery
 		}
-	} else if req.Action == "check" {
-		if user.DiscordID != "2" {
-			return nil, http.StatusForbidden, ErrDiscordWrongStep
+
+		if gpcm.SetSessionDiscordInfo(_req.ProfileID, database.LS_FINISHED, _req.DiscordID) != nil {
+			return res, http.StatusInternalServerError, gpcm.ErrNoSession
 		}
-		gpcm.SetSessionDiscordID(user.ProfileId, req.DiscordID)
-		err = user.UpdateDiscordID(pool, ctx, req.DiscordID)
+
+		// ID is persisted to DB finally
+		if user.UpdateDiscordID(pool, ctx, _req.DiscordID) != nil {
+			return res, http.StatusInternalServerError, ErrTransaction
+		}
+	} else if _req.Action == "reset" {
+		// Only requirement to reset is that the profile has begun linking, and your ID matches
+		// Since the ID is applied to the gpcm session on first link, it
+		// prevents griefing (if a reset command is ever added), but squatting
+		// is prevented by the 10 minute timeout on the bot. I'd prefer to
+		// handle the timeout on the server side but for now the temporary
+		// solution will likely be permanent...
+		if linkStage == database.LS_NONE || _req.DiscordID != discordID {
+			return res, http.StatusForbidden, ErrDiscordCannotUnlink
+		}
+
+		user, err := database.GetProfile(pool, ctx, _req.ProfileID)
 		if err != nil {
-			return nil, http.StatusInternalServerError, err
+			return res, http.StatusInternalServerError, ErrUserQuery
 		}
-	} else if req.Action == "unlink" {
-		if user.DiscordID != "1" && user.DiscordID != "2" && user.DiscordID != req.DiscordID {
-			return nil, http.StatusForbidden, ErrDiscordCannotUnlink
-		}
-		err = user.UpdateDiscordID(pool, ctx, "")
-		if err != nil {
-			return nil, http.StatusInternalServerError, err
+
+		if user.UpdateDiscordID(pool, ctx, "") != nil {
+			return res, http.StatusInternalServerError, ErrTransaction
 		}
 	}
 
-	return &user, http.StatusOK, nil
+	return res, http.StatusOK, nil
 }
