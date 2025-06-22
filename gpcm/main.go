@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 	"wwfc/common"
 	"wwfc/database"
 	"wwfc/logging"
@@ -68,9 +69,8 @@ var (
 	mutex               = deadlock.Mutex{}
 
 	allowDefaultDolphinKeys bool
-	config common.Config
+	config                  common.Config
 )
-
 
 func StartServer(reload bool) {
 	qr2.SetGPErrorCallback(func(pid uint32, reason string) {
@@ -126,6 +126,21 @@ func CloseConnection(index uint64) {
 	}
 
 	logging.Notice(session.ModuleName, "Connection closed")
+
+	ip, _ := common.IPFormatToInt(session.RemoteAddr)
+	kickInfo := []qr2.PIDIPPair{
+		{
+			PID: session.User.ProfileId,
+			IP:  uint32(ip),
+		},
+	}
+
+	// Defer by 3 seconds just in case!
+	go func() {
+		time.AfterFunc(3*time.Second, func() {
+			qr2.OrderKickFromGroups(kickInfo)
+		})
+	}()
 
 	if session.LoggedIn {
 		qr2.Logout(session.User.ProfileId)
