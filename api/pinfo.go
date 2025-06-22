@@ -42,6 +42,7 @@ func handlePinfoImpl(req PinfoRequest, validSecret bool) (*database.User, int, e
 			LastInGameSn: realUser.LastInGameSn,
 			BanIssued:    realUser.BanIssued,
 			BanExpires:   realUser.BanExpires,
+			DiscordID:    realUser.DiscordID,
 		}
 	} else {
 		ret = &realUser
