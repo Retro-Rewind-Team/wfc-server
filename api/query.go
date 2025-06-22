@@ -9,11 +9,11 @@ import (
 )
 
 type QueryRequest struct {
-	Secret   string `json:"secret"`
-	IP       string `json:"ip"`
-	DeviceID uint32 `json:"deviceID"`
-	Csnum    string `json:"csnum"`
-	DiscordID string `json:"discordId"`	
+	Secret    string `json:"secret"`
+	IP        string `json:"ip"`
+	DeviceID  uint32 `json:"deviceID"`
+	Csnum     string `json:"csnum"`
+	DiscordID string `json:"discordID"`
 	// 0: Either, 1: No Ban, 2: Ban
 	HasBan byte `json:"hasban"`
 }
@@ -32,17 +32,18 @@ var QueryRoute = MakeRouteSpec[QueryRequest, QueryResponse](
 )
 
 var (
-	ErrInvalidIPFormat = errors.New("Invalid IP Format. IPs must be in the format 'xx.xx.xx.xx'.")
-	ErrInvalidDeviceID = errors.New("DeviceID cannot be 0.")
-	ErrInvalidCsnum    = errors.New("Csnums must be less than 16 characters long and match the format '^[a-zA-Z0-9]+$'.")
-	ErrInvalidDiscordID = errors.New("Discord ID must be less than 18 characters long.")
-	ErrInvalidHasBan   = errors.New("HasBan must be either 0 (Either), 1 (No Ban), 2 (Ban)")
-	ErrEmptyParams     = errors.New("At least one of IP, Csnum, and DeviceID must be nonzero or nonempty")
-	ipRegex    = regexp.MustCompile(`^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$`)
-	csnumRegex = regexp.MustCompile(`^[a-zA-Z0-9]+$`)
+	ErrInvalidIPFormat  = errors.New("Invalid IP Format. IPs must be in the format 'xx.xx.xx.xx'.")
+	ErrInvalidDeviceID  = errors.New("DeviceID cannot be 0.")
+	ErrInvalidCsnum     = errors.New("Csnums must be less than 16 characters long and match the format '^[a-zA-Z0-9]+$'.")
+	ErrInvalidDiscordID = errors.New("Discord ID must be 18 or fewer characters long and all numbers.")
+	ErrInvalidHasBan    = errors.New("HasBan must be either 0 (Either), 1 (No Ban), 2 (Ban)")
+	ErrEmptyParams      = errors.New("At least one of IP, Csnum, DeviceID, or DiscordID must be nonzero or nonempty")
+	ipRegex             = regexp.MustCompile(`^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$`)
+	csnumRegex          = regexp.MustCompile(`^[a-zA-Z0-9]+$`)
+	numOnlyRegex        = regexp.MustCompile("^[0-9]+$")
 )
 
-const QUERYBASE = `SELECT profile_id, user_id, gsbrcd, ng_device_id, email, unique_nick, firstname, lastname, has_ban, ban_reason, open_host, last_ingamesn, last_ip_address, csnum, ban_moderator, ban_reason_hidden, ban_issued, ban_expires FROM users WHERE`
+const QUERYBASE = `SELECT profile_id FROM users WHERE`
 
 func HandleQuery(req any, _ bool, _ *http.Request) (any, int, error) {
 	_req := req.(QueryRequest)
@@ -55,7 +56,7 @@ func HandleQuery(req any, _ bool, _ *http.Request) (any, int, error) {
 		return nil, http.StatusBadRequest, ErrInvalidCsnum
 	}
 
-	if _req.DiscordID != "" && len(_req.DiscordID) > 18 {
+	if _req.DiscordID != "" && (len(_req.DiscordID) > 18 || !numOnlyRegex.MatchString(_req.DiscordID)) {
 		return nil, http.StatusBadRequest, ErrInvalidDiscordID
 	}
 
@@ -100,62 +101,34 @@ func HandleQuery(req any, _ bool, _ *http.Request) (any, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res := QueryResponse{}
-	res.Users = []database.User{}
+	pids := []uint32{}
 
 	count := 0
 	for rows.Next() {
 		count++
 
-		user := database.User{}
-
-		// May be null
-		var firstName *string
-		var lastName *string
-		var banReason *string
-		var lastInGameSn *string
-		var lastIPAddress *string
-		var banModerator *string
-		var banHiddenReason *string
-
-		err := rows.Scan(&user.ProfileId, &user.UserId, &user.GsbrCode, &user.NgDeviceId, &user.Email, &user.UniqueNick, &firstName, &lastName, &user.Restricted, &banReason, &user.OpenHost, &lastInGameSn, &lastIPAddress, &user.Csnum, &banModerator, &banHiddenReason, &user.BanIssued, &user.BanExpires)
-
+		var pid uint32
+		err := rows.Scan(&pid)
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
 
-		if firstName != nil {
-			user.FirstName = *firstName
-		}
-
-		if lastName != nil {
-			user.LastName = *lastName
-		}
-
-		if banReason != nil {
-			user.BanReason = *banReason
-		}
-
-		if lastInGameSn != nil {
-			user.LastInGameSn = *lastInGameSn
-		}
-
-		if lastIPAddress != nil {
-			user.LastIPAddress = *lastIPAddress
-		}
-
-		if banModerator != nil {
-			user.BanModerator = *banModerator
-		}
-
-		if banHiddenReason != nil {
-			user.BanReasonHidden = *banHiddenReason
-		}
-
-		res.Users = append(res.Users, user)
+		pids = append(pids, pid)
 
 		// TODO: Return a count of the total number of matches, do something
 		// about returing 80000 matches if the query is vague enough
+	}
+
+	res := QueryResponse{}
+	res.Users = []database.User{}
+
+	for _, pid := range pids {
+		user, err := database.GetProfile(pool, ctx, pid)
+		if err != nil {
+			return nil, http.StatusInternalServerError, err
+		}
+
+		res.Users = append(res.Users, user)
 	}
 
 	return res, http.StatusOK, nil
