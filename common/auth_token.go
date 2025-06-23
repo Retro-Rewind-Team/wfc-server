@@ -47,7 +47,7 @@ func appendString(blob []byte, value string, maxlen int) []byte {
 }
 
 func MarshalNASAuthToken(gamecd string, userid uint64, gsbrcd string, cfc uint64, region byte, lang byte, ingamesn string, unitcd byte, isLocalhost bool, csnum string) (string, string) {
-	blob := binary.LittleEndian.AppendUint64([]byte{}, uint64(time.Now().Unix()))
+	blob := binary.LittleEndian.AppendUint64([]byte{}, uint64(time.Now().UTC().Unix()))
 
 	blob = appendString(blob, gamecd, 4)
 
@@ -134,7 +134,7 @@ func UnmarshalNASAuthToken(token string) (gamecd string, issuetime time.Time, us
 }
 
 func MarshalGPCMLoginTicket(profileId uint32) string {
-	blob := binary.LittleEndian.AppendUint64([]byte{}, uint64(time.Now().Unix()))
+	blob := binary.LittleEndian.AppendUint64([]byte{}, uint64(time.Now().UTC().Unix()))
 	blob = binary.LittleEndian.AppendUint32(blob, profileId)
 	blob = append(blob, loginTicketMagic...)
 
