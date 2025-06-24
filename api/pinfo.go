@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"time"
 	"wwfc/database"
 )
 
@@ -46,21 +45,6 @@ func handlePinfoImpl(req PinfoRequest, validSecret bool) (*database.User, int, e
 		}
 	} else {
 		ret = &realUser
-	}
-
-	_, offset := time.Now().Zone()
-
-	// Add the offset to the time and then convert it back to local.
-	// The DB stores times in the server's locale but they are unmarshaled as
-	// UTC. This corrects for that
-	if ret.BanIssued != nil {
-		fixedIssued := ret.BanIssued.Add(time.Duration(-offset) * time.Second).Local()
-		ret.BanIssued = &fixedIssued
-	}
-
-	if ret.BanExpires != nil {
-		fixedExpires := ret.BanExpires.Add(time.Duration(-offset) * time.Second).Local()
-		ret.BanExpires = &fixedExpires
 	}
 
 	return ret, http.StatusOK, nil
