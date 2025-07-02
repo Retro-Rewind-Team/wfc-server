@@ -12,11 +12,14 @@ type LinkRequest struct {
 	ProfileID uint32 `json:"pid"`
 	DiscordID string `json:"discordID"`
 	Action    string `json:"action"`
+	Force     bool   `json:"force"`
 }
 
 type LinkResponse struct {
 	Success bool
 	Error   string
+	// The overwritten discordID if forcing.
+	Replaced string
 }
 
 var LinkRoute = MakeRouteSpec[LinkRequest, LinkResponse](
@@ -59,11 +62,36 @@ func HandleLink(req any, _ bool, _ *http.Request) (any, int, error) {
 	}
 
 	linkStage, discordID, err := gpcm.GetSessionDiscordInfo(_req.ProfileID)
-	if err != nil {
+	// If forcing, then we don't care about the session
+	if err != nil && !_req.Force {
 		return res, http.StatusInternalServerError, gpcm.ErrNoSession
 	}
 
 	if _req.Action == "link" {
+		// This is kind of just stuck in here, bits of duplicate code. Should
+		// be cleaned up eventually.
+		if _req.Force {
+			user, err := database.GetProfile(pool, ctx, _req.ProfileID)
+			if err != nil {
+				return res, http.StatusInternalServerError, ErrUserQuery
+			}
+
+			if user.DiscordID != "" {
+				res.Replaced = user.DiscordID
+			}
+
+			// Ignore any errors. If we can set the session, great, but when
+			// forcing a link we don't need the session to exist.
+			_ = gpcm.SetSessionDiscordInfo(_req.ProfileID, database.LS_FINISHED, _req.DiscordID)
+
+			// ID is persisted to DB finally
+			if user.UpdateDiscordID(pool, ctx, _req.DiscordID) != nil {
+				return res, http.StatusInternalServerError, ErrTransaction
+			}
+
+			return res, http.StatusOK, nil
+		}
+
 		// LinkStage is not persisted in the DB (so if the server resets in the
 		// middle of linking, nothing has persisted so it cannot get stuck in
 		// an invalid state). Field is inferred to be LS_FINISHED on load from
