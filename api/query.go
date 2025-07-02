@@ -39,7 +39,7 @@ var (
 	ErrInvalidHasBan    = errors.New("HasBan must be either 0 (Either), 1 (No Ban), 2 (Ban)")
 	ErrEmptyParams      = errors.New("At least one of IP, Csnum, DeviceID, or DiscordID must be nonzero or nonempty")
 	ipRegex             = regexp.MustCompile(`^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$`)
-	csnumRegex          = regexp.MustCompile(`^[a-zA-Z0-9]+$`)
+	csnumRegex          = regexp.MustCompile(`^[a-zA-Z0-9-]+$`)
 	numOnlyRegex        = regexp.MustCompile("^[0-9]+$")
 )
 
