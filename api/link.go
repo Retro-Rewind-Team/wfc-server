@@ -10,7 +10,7 @@ import (
 type LinkRequest struct {
 	Secret    string `json:"secret"`
 	ProfileID uint32 `json:"pid"`
-	DiscordID string `json:"discordId"`
+	DiscordID string `json:"discordID"`
 	Action    string `json:"action"`
 }
 
