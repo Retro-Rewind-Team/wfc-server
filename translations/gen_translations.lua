@@ -1,24 +1,24 @@
 local http_request = require("http.request")
 local utils = require("./utils")
 
-local SHEETS_CSV_URL =
-[[https://docs.google.com/spreadsheets/d/1kas1J6RcIePcaRRxtTluPZm8C8kydpaoQBtRg15M-zM/export?format=tsv&gid=1517055494#gid=1517055494]]
+local SHEETS_TSV_URL =
+    [[https://docs.google.com/spreadsheets/d/1kas1J6RcIePcaRRxtTluPZm8C8kydpaoQBtRg15M-zM/export?format=tsv&gid=1517055494#gid=1517055494]]
 
 local SHEET_LANG_TO_WWFC_LANG = {
     Japanese = "LangJapanese",
     English = "LangEnglish",
     German = "LangGerman",
     -- French = "LangFrench", -- We only have EU French
-    Spanish = "LangSpanish",
+    ["Spanish(NTSC)"] = "LangSpanish",
     Italian = "LangItalian",
     Dutch = "LangDutch",
     ["Chinese (Simplified)"] = "LangSimpChinese",
-    -- LangTradChinese
+    ["Chinese (Traditional)"] = "LangTradChinese",
     Korean = "LangKorean",
 
     -- LangEnglishEU -- We only have American English
     French = "LangFrenchEU",
-    -- LangSpanishEU -- We only have Americas Spanish
+    ["Spanish(EU)"] = "LangSpanishEU",
 
     -- Custom Languages:
     Czech = "LangCzech",
@@ -56,10 +56,11 @@ local ORDERED_LANGUAGES = {
     "Japanese",
     "English",
     "German",
-    "Spanish",
+    "Spanish(NTSC)",
     "Italian",
     "Dutch",
     "Chinese (Simplified)",
+    "Chinese (Traditional)",
     "Korean",
 
     -- Custom
@@ -72,15 +73,18 @@ local ORDERED_LANGUAGES = {
 
     -- EU
     "French",
+    "Spanish(EU)",
     -- Custom
     "Portuguese",
 }
 
-local headers, stream = assert(http_request.new_from_uri(SHEETS_CSV_URL):go())
+print("Downloading sheet as tsv")
+local headers, stream = assert(http_request.new_from_uri(SHEETS_TSV_URL):go())
 local body = assert(stream:get_body_as_string())
 if headers:get(":status") ~= "200" then
     error(body)
 end
+print("Downloaded sheet")
 
 -- local infd = io.open("./WhWz & RR Translation - RR_ Server-Side Text.tsv")
 -- assert(infd, "Please download the spreadsheet as 'WhWz & RR Translation - RR_ Server-Side Text.tsv'")
@@ -108,6 +112,7 @@ end
 
 local messages = {}
 
+print("Processing sheet into message objects")
 for _, line in ipairs(split) do
     local translations = utils.split_by_pattern(line, "\t")
     local message = table.remove(translations, 1)
@@ -132,6 +137,7 @@ local output_lines = {
 }
 
 for _, message_name in ipairs(ORDERED_MESSAGES) do
+    print("Adding message " .. message_name)
     local message = messages[message_name]
     assert(message, "Missing message for " .. message_name)
     table.insert(output_lines, string.format("\t%s = WWFCErrorMessage{", message_name))
@@ -141,7 +147,8 @@ for _, message_name in ipairs(ORDERED_MESSAGES) do
     for _, lang in ipairs(ORDERED_LANGUAGES) do
         local mapped = SHEET_LANG_TO_WWFC_LANG[lang]
         local translation = message.langs[lang]
-        if mapped and translation ~= "" then
+        if mapped and translation and translation ~= "" then
+            print(("    %s: Present"):format(lang))
             table.insert(output_lines, string.format('\t\t\t%s: "" +', mapped))
 
             local splits = utils.split_by_pattern(translation, "+")
@@ -157,6 +164,8 @@ for _, message_name in ipairs(ORDERED_MESSAGES) do
 
                 table.insert(output_lines, string.format('\t\t\t\t"%s%s', segment, ending))
             end
+        else
+            print(("    %s: Missing"):format(lang))
         end
     end
 
