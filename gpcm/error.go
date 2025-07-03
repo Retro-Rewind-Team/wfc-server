@@ -235,16 +235,8 @@ func (err GPError) GetMessageTranslate(gameName string, region byte, lang byte, 
 			}
 
 			errMsg := wwfcMessage.MessageRMC[lang]
-			if errMsg == "" && lang != LangEnglish {
-				if lang == LangSpanishEU {
-					errMsg = wwfcMessage.MessageRMC[LangSpanish]
-				} else if lang == LangFrenchEU {
-					errMsg = wwfcMessage.MessageRMC[LangFrench]
-				}
-
-				if errMsg == "" {
-					errMsg = wwfcMessage.MessageRMC[LangEnglish]
-				}
+			if errMsg == "" {
+				errMsg = wwfcMessage.MessageRMC[LangEnglish]
 			}
 
 			if errMsg != "" {
