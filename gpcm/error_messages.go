@@ -34,6 +34,10 @@ var (
 				"tijdens het verbinden met Retro WFC.\n" +
 				"\n" +
 				"Foutcode: %[1]d",
+			LangTradChinese: "" +
+				"載入Retro WFC 時發生錯誤\n" +
+				"\n" +
+				"錯誤代碼：%[1]d",
 			LangKorean: "" +
 				"Retro WFC에 연결 도중\n" +
 				"알 수 없는 오류가 발생했습니다.\n" +
@@ -54,73 +58,60 @@ var (
 				"bilinmeyen bir hata oluştu.\n" +
 				"\n" +
 				"Hata Kodu: %[1]d",
+			LangFinnish: "" +
+				"Tapahtui Tuntematon virhe\n" +
+				"kirjautuessa sisään Retro WFC:hen.\n" +
+				"\n" +
+				"Virhekoodi: %[1]d",
 			LangFrenchEU: "" +
 				"Une erreur inconnue s'est produite\n" +
 				"pendant la connexion à Retro WFC.\n" +
 				"\n" +
 				"Code Erreur:  %[1]d",
+			LangSpanishEU: "" +
+				"Un error desconocido ha ocurrido\n" +
+				"al conectarse a Retro WFC.\n" +
+				"\n" +
+				"Código de error: %[1]d",
+			LangPortugueseEU: "" +
+				"Ocorreu um erro desconhecido\n" +
+				"ao conectar-se com o Retro WFC.\n" +
+				"\n" +
+				"Código de Erro: %[1]d",
 		},
 	}
 
 	WWFCMsgDolphinSetupRequired = WWFCErrorMessage{
 		ErrorCode: 22001,
 		MessageRMC: map[byte]string{
-			LangJapanese: "" +
-				"Dolphinで Retro WFCに接続するには\n" +
-				"ついかの セットアップが必要です\n" +
-				"\n" +
-				"エラーコード： %[1]d",
 			LangEnglish: "" +
-				"Additional setup is required\n" +
-				"to use Retro WFC on Dolphin.\n" +
+				"You are using a leaked NAND which is already banned.\n" +
+				"Please revert your NAND to the Dolphin Default.\n" +
+				"Ticket on discord.gg/retrorewind for help.\n" +
 				"\n" +
-				"Error Code: %[1]d",
+				"Error Code: %[1]d\n" +
+				"Support Info: NG%08[2]x",
 			LangGerman: "" +
-				"Für die Verwendung von Retro WFC auf Dolphin\n" +
-				"ist eine zusätzliche Einrichtung erforderlich.\n" +
+				"Du benutzt eine geleakte NAND, die gebannt wurde.\n" +
+				"Bitte wechsle zurück auf die Standard Dolphin NAND.\n" +
+				"Ticket über discord.gg/retrorewind für Hilfe erstellen.\n" +
 				"\n" +
-				"Fehlercode: %[1]d",
+				"Fehlercode: %[1]d\n" +
+				"Support-Info: NG%08[2]x",
 			LangSpanish: "" +
-				"Se requiere una instalación adicional\n" +
-				"para poder usar Retro WFC en Dolphin.\n" +
+				"Estás usando una NAND filtrada que ya está baneada.\n" +
+				"Por favor usa la NAND predeterminada por Dolphin.\n" +
+				"Ticket en discord.gg/retrorewind para recibir ayuda.\n" +
 				"\n" +
-				"Código de error: %[1]d",
-			LangItalian: "" +
-				"Un'ulteriore installazione è necessaria\n" +
-				"per usare la Retro WFC su Dolphin.\n" +
+				"Código de Error: %[1]d\n" +
+				"Información de soporte: NG%08[2]x",
+			LangSpanishEU: "" +
+				"Estás usando una NAND filtrada que ya está baneada.\n" +
+				"Por favor usa la NAND predeterminada por Dolphin.\n" +
+				"Ticket en discord.gg/retrorewind para recibir ayuda.\n" +
 				"\n" +
-				"Codice Errore: %[1]d",
-			LangDutch: "" +
-				"Extra instellingen zijn vereist\n" +
-				"om Retro WFC op Dolphin te gebruiken.\n" +
-				"\n" +
-				"Foutcode: %[1]d",
-			LangKorean: "" +
-				"돌핀에서 Retro WFC를 사용하려면\n" +
-				"추가 작업이 필요합니다.\n" +
-				"\n" +
-				"에러 코드: %[1]d",
-			LangCzech: "" +
-				"K použití Retro WFC na Dolphinu\n" +
-				"je nutné další nastavení.\n" +
-				"\n" +
-				"Kód Chyby: %[1]d",
-			LangRussian: "" +
-				"Чтобы играть по Retro WFC\n" +
-				"в Dolphin, необходимо провести\n" +
-				"дополнительную настройку.\n" +
-				"\n" +
-				"Код ошибки: %[1]d",
-			LangTurkish: "" +
-				"Retro WFC'yi Dolphin'de kullanabilmek\n" +
-				"için birkaç adım daha gerekiyor.\n" +
-				"\n" +
-				"Hata Kodu: %[1]d",
-			LangFrenchEU: "" +
-				"Une installation additionnelle est requise\n" +
-				"pour utiliser Retro WFC sur Dolphin.\n" +
-				"\n" +
-				"Code Erreur: %[1]d",
+				"Código de Error: %[1]d\n" +
+				"Información de soporte: NG%08[2]x",
 		},
 	}
 
@@ -168,6 +159,12 @@ var (
 				"\n" +
 				"Foutcode: %[1]d\n" +
 				"Ondersteuningsinformatie: NG%08[2]x",
+			LangTradChinese: "" +
+				"由於違反服務條款\n" +
+				"你禁止使用 Retro WFC\n" +
+				"\n" +
+				"錯誤代碼：%[1]d\n" +
+				"支援資訊：NG%08[2]x",
 			LangKorean: "" +
 				"이용약관 위반으로\n" +
 				"Retro WFC 계정이\n" +
@@ -203,6 +200,20 @@ var (
 				"\n" +
 				"Code Erreur:  %[1]d\n" +
 				"Information Support: NG%08[2]x",
+			LangSpanishEU: "" +
+				"Estás baneado de Retro WFC\n" +
+				"debido a una violación de los\n" +
+				"Terminos de Servicio.\n" +
+				"\n" +
+				"Código de Error: %[1]d\n" +
+				"Información de soporte: NG%08[2]x",
+			LangPortugueseEU: "" +
+				"Foste banido do Retro WFC\n" +
+				"devido a uma violação dos\n" +
+				"Termos e Condições\n" +
+				"\n" +
+				"Código de Erro: %[1]d\n" +
+				"Informação de Suporte: NG%08[2]x",
 		},
 	}
 
@@ -250,6 +261,12 @@ var (
 				"\n" +
 				"Foutcode: %[1]d\n" +
 				"Ondersteuningsinformatie: NG%08[2]x",
+			LangTradChinese: "" +
+				"由於違反服務條款\n" +
+				"你禁止使用 Retro WFC\n" +
+				"\n" +
+				"錯誤代碼：%[1]d\n" +
+				"支援資訊：NG%08[2]x",
 			LangKorean: "" +
 				"이용약관 위반으로\n" +
 				"Retro WFC 계정이\n" +
@@ -285,6 +302,20 @@ var (
 				"\n" +
 				"Code Erreur:  %[1]d\n" +
 				"Information Support: NG%08[2]x",
+			LangSpanishEU: "" +
+				"Estás baneado de Retro WFC\n" +
+				"debido a una violación de los\n" +
+				"Terminos de Servicio.\n" +
+				"\n" +
+				"Código de Error: %[1]d\n" +
+				"Información de soporte: NG%08[2]x",
+			LangPortugueseEU: "" +
+				"Foste banido do Retro WFC\n" +
+				"devido a uma violação dos\n" +
+				"Termos e Condições\n" +
+				"\n" +
+				"Código de Erro: %[1]d\n" +
+				"Informação de Suporte: NG%08[2]x",
 		},
 	}
 
@@ -332,6 +363,12 @@ var (
 				"\n" +
 				"Foutcode: %[1]d\n" +
 				"Ondersteuningsinformatie: NG%08[2]x",
+			LangTradChinese: "" +
+				"由於你違反 Retro WFC 規則\n" +
+				"你已被禁止參加公開遊戲\n" +
+				"\n" +
+				"錯誤代碼：%[1]d\n" +
+				"支援資訊：NG%08[2]x",
 			LangKorean: "" +
 				"Retro WFC 규정 위반으로\n" +
 				"공개 경기에서 차단됐습니다.\n" +
@@ -366,6 +403,20 @@ var (
 				"\n" +
 				"Code Erreur:  %[1]d\n" +
 				"Information Support: NG%08[2]x",
+			LangSpanishEU: "" +
+				"Estás baneado de partidas públicas\n" +
+				"debido a una violación de las\n" +
+				"reglas de Retro WFC.\n" +
+				"\n" +
+				"Código de Error: %[1]d\n" +
+				"Información de soporte: NG%08[2]x",
+			LangPortugueseEU: "" +
+				"Foste banido das partidas\n" +
+				"públicas devido a uma violação\n" +
+				"dos Termos e Condições\n" +
+				"\n" +
+				"Código de Erro: %[1]d\n" +
+				"Informação de Suporte: NG%08[2]x",
 		},
 	}
 
@@ -413,6 +464,12 @@ var (
 				"\n" +
 				"Foutcode: %[1]d\n" +
 				"Ondersteuningsinformatie: NG%08[2]x",
+			LangTradChinese: "" +
+				"由於你違反 Retro WFC 規則\n" +
+				"你已無法參加公開遊戲\n" +
+				"\n" +
+				"錯誤代碼：%[1]d\n" +
+				"支援資訊：NG%08[2]x",
 			LangKorean: "" +
 				"Retro WFC 규정 위반으로\n" +
 				"공개 경기에서 차단됐습니다.\n" +
@@ -447,6 +504,20 @@ var (
 				"\n" +
 				"Code Erreur:  %[1]d\n" +
 				"Information Support: NG%08[2]x",
+			LangSpanishEU: "" +
+				"Estás baneado de partidas públicas\n" +
+				"debido a una violación de las\n" +
+				"reglas de Retro WFC.\n" +
+				"\n" +
+				"Código de Error: %[1]d\n" +
+				"Información de soporte: NG%08[2]x",
+			LangPortugueseEU: "" +
+				"Foste banido das partidas\n" +
+				"públicas devido a uma violação\n" +
+				"dos Termos e Condições\n" +
+				"\n" +
+				"Código de Erro: %[1]d\n" +
+				"Informação de Suporte: NG%08[2]x",
 		},
 	}
 
@@ -483,6 +554,11 @@ var (
 				"Reden: %[3]s\n" +
 				"Foutcode: %[1]d\n" +
 				"Ondersteuningsinformatie: NG%08[2]x",
+			LangTradChinese: "" +
+				"您被禁止參加公開遊戲\n" +
+				"原因：%[3]s\n" +
+				"錯誤代碼：%[1]d\n" +
+				"支援資訊：NG%08[2]x",
 			LangKorean: "" +
 				"공개 경기에서 차단됐습니다.\n" +
 				"사유: %[3]s\n" +
@@ -511,6 +587,16 @@ var (
 				"Raison: %[3]s\n" +
 				"Error Code: %[1]d\n" +
 				"Information Support: NG%08[2]x",
+			LangSpanishEU: "" +
+				"Estás baneado de partidas públicas.\n" +
+				"Motivo: %[3]s\n" +
+				"Código de Error: %[1]d\n" +
+				"Info. de soporte: NG%08[2]x",
+			LangPortugueseEU: "" +
+				"Foste banido das partidas públicas.\n" +
+				"Razão: %[3]s\n" +
+				"Código de Erro: %[1]d\n" +
+				"Informação de Suporte: NG%08[2]x",
 		},
 	}
 
@@ -547,6 +633,11 @@ var (
 				"Reden: %[3]s\n" +
 				"Foutcode: %[1]d\n" +
 				"Ondersteuningsinformatie: NG%08[2]x",
+			LangTradChinese: "" +
+				"您被禁止參加公開遊戲\n" +
+				"原因：%[3]s\n" +
+				"錯誤代碼：%[1]d\n" +
+				"支援資訊：NG%08[2]x",
 			LangKorean: "" +
 				"공개 경기에서 차단됐습니다.\n" +
 				"사유: %[3]s\n" +
@@ -575,6 +666,16 @@ var (
 				"Raison: %[3]s\n" +
 				"Error Code: %[1]d\n" +
 				"Information Support: NG%08[2]x",
+			LangSpanishEU: "" +
+				"Estás baneado de partidas públicas.\n" +
+				"Motivo: %[3]s\n" +
+				"Código de Error: %[1]d\n" +
+				"Info. de soporte: NG%08[2]x",
+			LangPortugueseEU: "" +
+				"Foste banido das partidas públicas.\n" +
+				"Razão: %[3]s\n" +
+				"Código de Erro: %[1]d\n" +
+				"Informação de Suporte: NG%08[2]x",
 		},
 	}
 
@@ -609,6 +710,10 @@ var (
 				"geschopt.\n" +
 				"\n" +
 				"Foutcode: %[1]d",
+			LangTradChinese: "" +
+				"您已被踢出 Retro WFC\n" +
+				"\n" +
+				"錯誤代碼：%[1]d",
 			LangKorean: "" +
 				"Retro WFC에서 추방됐습니다.\n" +
 				"\n" +
@@ -631,6 +736,15 @@ var (
 				"Retro WFC.\n" +
 				"\n" +
 				"Code Erreur: %[1]d",
+			LangSpanishEU: "" +
+				"Te han expulsado de Retro WFC.\n" +
+				"\n" +
+				"Código de Error: %[1]d",
+			LangPortugueseEU: "" +
+				"Foste expulso do\n" +
+				"Retro WFC.\n" +
+				"\n" +
+				"Código de Erro: %[1]d",
 		},
 	}
 
@@ -667,6 +781,10 @@ var (
 				"geschopt door een moderator.\n" +
 				"\n" +
 				"Foutcode: %[1]d",
+			LangTradChinese: "" +
+				"您已被房主踢出 Retro WFC\n" +
+				"\n" +
+				"錯誤代碼：%[1]d",
 			LangKorean: "" +
 				"관리자에 의해 Retro WFC에서\n" +
 				"추방됐습니다.\n" +
@@ -692,6 +810,16 @@ var (
 				"Retro WFC par un modérateur.\n" +
 				"\n" +
 				"Code Erreur: %[1]d",
+			LangSpanishEU: "" +
+				"Un moderador te ha\n" +
+				"expulsado de Retro WFC.\n" +
+				"\n" +
+				"Código de Error: %[1]d",
+			LangPortugueseEU: "" +
+				"Foste expulso do Retro WFC\n" +
+				"por um moderador.\n" +
+				"\n" +
+				"Código de Erro: %[1]d",
 		},
 	}
 
@@ -728,6 +856,10 @@ var (
 				"geschopt door de gastheer.\n" +
 				"\n" +
 				"Foutcode: %[1]d",
+			LangTradChinese: "" +
+				"您已被房主踢出好友房間\n" +
+				"\n" +
+				"錯誤代碼：%[1]d",
 			LangKorean: "" +
 				"방장에 의해 추방됐습니다.\n" +
 				"\n" +
@@ -751,6 +883,16 @@ var (
 				"par le créateur.\n" +
 				"\n" +
 				"Code Erreur: %[1]d",
+			LangSpanishEU: "" +
+				"El creador de la sala te ha\n" +
+				"expulsado de ella.\n" +
+				"\n" +
+				"Código de Error: %[1]d",
+			LangPortugueseEU: "" +
+				"Foste expulso da sala\n" +
+				"pelo criador da sala.\n" +
+				"\n" +
+				"Código de Erro: %[1]d",
 		},
 	}
 
@@ -786,6 +928,11 @@ var (
 				"geschopt.\n" +
 				"Reden: %[3]s\n" +
 				"Foutcode: %[1]d",
+			LangTradChinese: "" +
+				"您已被踢出 Retro WFC\n" +
+				"\n" +
+				"原因：%[3]s\n" +
+				"錯誤代碼：%[1]d",
 			LangKorean: "" +
 				"Retro WFC에서 추방됐습니다.\n" +
 				"\n" +
@@ -811,6 +958,16 @@ var (
 				"Retro WFC.\n" +
 				"Raison: %[3]s\n" +
 				"Error Code: %[1]d",
+			LangSpanishEU: "" +
+				"Te han expulsado de Retro WFC.\n" +
+				"Motivo: %[3]s\n" +
+				"\n" +
+				"Código de Error: %[1]d",
+			LangPortugueseEU: "" +
+				"Foste expulso do\n" +
+				"Retro WFC.\n" +
+				"Razão: %[3]s\n" +
+				"Código de Erro: %[1]d",
 		},
 	}
 
@@ -830,8 +987,8 @@ var (
 				"\n" +
 				"Error Code: %[1]d",
 			LangGerman: "" +
-				"Die Konsole die du gerade nutzt\n" +
-				"ist nicht die selbe mit der dieses\n" +
+				"Die Konsole, die du gerade nutzt,\n" +
+				"ist nicht dieselbe, mit der dieses\n" +
 				"Profil erstellt wurde.\n" +
 				"\n" +
 				"Fehlercode: %[1]d",
@@ -853,6 +1010,11 @@ var (
 				"profiel te registreren.\n" +
 				"\n" +
 				"Foutcode: %[1]d",
+			LangTradChinese: "" +
+				"你正在使用的主機\n" +
+				"並非用於註冊此用戶的裝置\n" +
+				"\n" +
+				"錯誤代碼：%[1]d",
 			LangKorean: "" +
 				"사용중인 콘솔이 프로필에\n" +
 				"등록된 기기 정보와 다릅니다.\n" +
@@ -880,6 +1042,12 @@ var (
 				"enregistrer ce profil.\n" +
 				"\n" +
 				"Code Erreur: %[1]d",
+			LangSpanishEU: "" +
+				"La consola que estas usando no es el\n" +
+				"dispositivo usado para registrar este\n" +
+				"perfil.\n" +
+				"\n" +
+				"Código de Error: %[1]d",
 		},
 	}
 
@@ -901,8 +1069,8 @@ var (
 				"\n" +
 				"Error Code: %[1]d",
 			LangGerman: "" +
-				"Die Konsole die du gerade nutzt\n" +
-				"ist nicht die selbe mit der dieses\n" +
+				"Die Konsole, die du gerade nutzt,\n" +
+				"ist nicht dieselbe, mit der dieses\n" +
 				"Profil erstellt wurde. Bitte gehe sicher\n" +
 				"dass du das NAND korrekt initialisiert hast.\n" +
 				"\n" +
@@ -913,7 +1081,7 @@ var (
 				"perfil. Asegurate que has configurado\n" +
 				"correctamente tu NAND.\n" +
 				"\n" +
-				"Código de error: %[1]d",
+				"Código de Error: %[1]d",
 			LangItalian: "" +
 				"La console che stai usando non è\n" +
 				"il dispositivo usato per registrare\n" +
@@ -928,6 +1096,12 @@ var (
 				"NAND juist is ingesteld.\n" +
 				"\n" +
 				"Foutcode: %[1]d",
+			LangTradChinese: "" +
+				"你正在使用的主機\n" +
+				"並非用於註冊此用戶的裝置\n" +
+				"請確認已安裝正確的 NAND\n" +
+				"\n" +
+				"錯誤代碼：%[1]d",
 			LangKorean: "" +
 				"사용중인 콘솔이 프로필에\n" +
 				"등록된 기기가 아닙니다.\n" +
@@ -961,6 +1135,13 @@ var (
 				"configuré votre NAND correctement.\n" +
 				"\n" +
 				"Code Erreur: %[1]d",
+			LangSpanishEU: "" +
+				"La consola que estas usando no es el\n" +
+				"dispositivo usado para registrar este\n" +
+				"perfil. Asegurate que has configurado\n" +
+				"correctamente tu NAND.\n" +
+				"\n" +
+				"Código de Error: %[1]d",
 		},
 	}
 
@@ -980,8 +1161,8 @@ var (
 				"\n" +
 				"Error Code: %[1]d",
 			LangGerman: "" +
-				"Die Profil-ID die du versuchst zu\n" +
-				"registrieren ist ungültig.\n" +
+				"Die Profil-ID, die du versuchst zu\n" +
+				"registrieren, ist ungültig.\n" +
 				"Bitte erstelle ein neues Profil.\n" +
 				"\n" +
 				"Fehlercode: %[1]d",
@@ -990,7 +1171,7 @@ var (
 				"registrar es invalido.\n" +
 				"Cree una nueva licencia.\n" +
 				"\n" +
-				"Código de error: %[1]d",
+				"Código de Error: %[1]d",
 			LangItalian: "" +
 				"L'ID del profilo che stai cercando\n" +
 				"di registrare non è valido.\n" +
@@ -1003,6 +1184,11 @@ var (
 				"Maak een nieuw profiel aan.\n" +
 				"\n" +
 				"Foutcode: %[1]d",
+			LangTradChinese: "" +
+				"你註冊的資料 ID 無效\n" +
+				"請建立新的授權\n" +
+				"\n" +
+				"錯誤代碼：%[1]d",
 			LangKorean: "" +
 				"사용하시려는 프로필 ID는\n" +
 				"등록하실 수 없습니다.\n" +
@@ -1033,6 +1219,12 @@ var (
 				"Veuillez créer une nouveau permis.\n" +
 				"\n" +
 				"Code Erreur: %[1]d",
+			LangSpanishEU: "" +
+				"El perfil que está tratando de\n" +
+				"registrar es invalido.\n" +
+				"Cree una nueva licencia.\n" +
+				"\n" +
+				"Código de Error: %[1]d",
 		},
 	}
 
@@ -1050,15 +1242,15 @@ var (
 				"\n" +
 				"Error Code: %[1]d",
 			LangGerman: "" +
-				"Den Freundescode den du gerade\n" +
-				"registrierst wird bereits verwendet.\n" +
+				"Der Freundescode, den du gerade\n" +
+				"registrierst, wird bereits verwendet.\n" +
 				"\n" +
 				"Fehlercode: %[1]d",
 			LangSpanish: "" +
 				"La clave de amigo que está tratando\n" +
 				"de registrar, ya está en uso.\n" +
 				"\n" +
-				"Código de error: %[1]d",
+				"Código de Error: %[1]d",
 			LangItalian: "" +
 				"Il codice amico che stai cercando\n" +
 				"di registrare è già in uso.\n" +
@@ -1069,6 +1261,10 @@ var (
 				"registreren is al in gebruik.\n" +
 				"\n" +
 				"Foutcode: %[1]d",
+			LangTradChinese: "" +
+				"此好友代碼已被使用\n" +
+				"\n" +
+				"錯誤代碼：%[1]d",
 			LangKorean: "" +
 				"해당 친구 코드는 이미 사용중입니다.\n" +
 				"\n" +
@@ -1093,6 +1289,11 @@ var (
 				"d'enregistrer est déjà utilisé.\n" +
 				"\n" +
 				"Code Erreur: %[1]d",
+			LangSpanishEU: "" +
+				"La clave de amigo que está tratando\n" +
+				"de registrar, ya está en uso.\n" +
+				"\n" +
+				"Código de Error: %[1]d",
 		},
 	}
 
@@ -1110,7 +1311,7 @@ var (
 				"\n" +
 				"Error Code: %[1]d",
 			LangGerman: "" +
-				"Der Retro WFC payload ist ungültig.\n" +
+				"Die Retro WFC Payload ist ungültig.\n" +
 				"Versuche das Spiel neu zu starten.\n" +
 				"\n" +
 				"Fehlercode: %[1]d",
@@ -1118,7 +1319,7 @@ var (
 				"Retro WFC no cargó correctamente\n" +
 				"Intente reiniciar su juego.\n" +
 				"\n" +
-				"Código de error: %[1]d",
+				"Código de Error: %[1]d",
 			LangItalian: "" +
 				"Il payload della Retro WFC non è valido.\n" +
 				"Prova a riavviare il gioco.\n" +
@@ -1129,6 +1330,11 @@ var (
 				"Probeer het spel opnieuw op te starten.\n" +
 				"\n" +
 				"Foutcode: %[1]d",
+			LangTradChinese: "" +
+				"Retro WFC 負載失效\n" +
+				"請嘗試重新啟動遊戲\n" +
+				"\n" +
+				"錯誤代碼：%[1]d",
 			LangKorean: "" +
 				"Retro WFC 페이로드가 잘못됐습니다.\n" +
 				"게임을 재시작 하십시오.\n" +
@@ -1140,7 +1346,7 @@ var (
 				"\n" +
 				"Kód Chyby: %[1]d",
 			LangRussian: "" +
-				"Запущен некорректный пейлоад.\n" +
+				"Запущен некорректный пейлоад\n" +
 				"Retro WFC. Перезапустите игру.\n" +
 				"\n" +
 				"Код ошибки: %[1]d",
@@ -1154,6 +1360,11 @@ var (
 				"Veuillez redémarrer votre jeu.\n" +
 				"\n" +
 				"Code Erreur: %[1]d",
+			LangSpanishEU: "" +
+				"Retro WFC no cargó correctamente\n" +
+				"Intente reiniciar su juego.\n" +
+				"\n" +
+				"Código de Error: %[1]d",
 		},
 	}
 
@@ -1181,7 +1392,7 @@ var (
 				"Fuiste desconectado debido a discrepancias\n" +
 				"con tu valor de PC o PB.\n" +
 				"\n" +
-				"Código de error: %[1]d",
+				"Código de Error: %[1]d",
 			LangItalian: "" +
 				"Sei stato disconnesso dalla Retro WFC\n" +
 				"a causa di un valore non valido\n" +
@@ -1193,6 +1404,11 @@ var (
 				"vanwege een ongeldige rp- of gp-waarde.\n" +
 				"\n" +
 				"Foutcode: %[1]d",
+			LangTradChinese: "" +
+				"你與 Retro WFC 中斷連線\n" +
+				"VR 或 BR 不會計算\n" +
+				"\n" +
+				"錯誤代碼：%[1]d",
 			LangKorean: "" +
 				"잘못된 VR 또는 BR 값으로 인해\n" +
 				"Retro WFC 연결이 끊어졌습니다.\n" +
@@ -1222,12 +1438,23 @@ var (
 				"de Points Course ou Points Bataille.\n" +
 				"\n" +
 				"Code Erreur: %[1]d",
+			LangSpanishEU: "" +
+				"Fuiste desconectado debido a discrepancias\n" +
+				"con tu valor de PC o PB.\n" +
+				"\n" +
+				"Código de Error: %[1]d",
 		},
 	}
 
 	WWFCMsgInvalidHash = WWFCErrorMessage{
 		ErrorCode: 22010,
 		MessageRMC: map[byte]string{
+			LangJapanese: "" +
+				"むこうなパックのバージョンです！\n" +
+				"ログインするために パックをアップデート\n" +
+				"または インストールし直してください\n" +
+				"\n" +
+				"Error Code: %[1]d",
 			LangEnglish: "" +
 				"Invalid pack version!\n" +
 				"Please update or reinstall your pack\n" +
@@ -1237,10 +1464,68 @@ var (
 			LangGerman: "" +
 				"Ungültige Pack-Version!\n" +
 				"Bitte update oder installiere\n" +
-				"das Pack neu um dich einzuloggen.\n" +
+				"das Pack neu, um dich einzuloggen.\n" +
 				"\n" +
 				"Error Code: %[1]d",
+			LangSpanish: "" +
+				"Versión del mod invalido.\n" +
+				"Actualize o reinstale el pack para\n" +
+				"poder ingresar.\n" +
+				"\n" +
+				"Código de Error: %[1]d",
+			LangItalian: "" +
+				"Versione della distribuzione errata!\n" +
+				"Aggiorna o reinstalla la distribuzione\n" +
+				"per connettesi.\n" +
+				"\n" +
+				"Codice Errore: %[1]d",
+			LangDutch: "" +
+				"Invalide versie van de mod!\n" +
+				"Update of installeer de mod opnieuw\n" +
+				"om in te loggen.\n" +
+				"\n" +
+				"Foutcode: %[1]d",
+			LangTradChinese: "" +
+				"套件版本不可用！\n" +
+				"請更新或重新安裝套件\n" +
+				"\n" +
+				"錯誤代碼：%[1]d",
+			LangKorean: "" +
+				"팩 버전이 잘못됐습니다!\n" +
+				"로그인을 하려면 팩을 업데이트\n" +
+				"또는 재설치 하십시오.\n" +
+				"\n" +
+				"에러 코드: %[1]d",
+			LangCzech: "" +
+				"Neplatná verze balíčku!\n" +
+				"Chceš-li se přihlásit, aktualizuj\n" +
+				"nebo znovu nainstaluj balíček.\n" +
+				"\n" +
+				"Kód Chyby: %[1]d",
+			LangRussian: "" +
+				"Ваша версия RR устарела!\n" +
+				"Чтобы войти, обновите\n" +
+				"или переустановите RR.\n" +
+				"\n" +
+				"Код ошибки: %[1]d",
+			LangTurkish: "" +
+				"Geçersiz mod sürümü!\n" +
+				"Oynayabilmek için lütfen mod'u\n" +
+				"güncelleyin veya yeniden yükleyin.\n" +
+				"\n" +
+				"Hata Kodu: %[1]d",
+			LangFrenchEU: "" +
+				"Version du pack invalide!\n" +
+				"Veuillez mettre à jour ou réinstaller\n" +
+				"le pack pour se connecter.\n" +
+				"Code Erreur: %[1]d",
+			LangSpanishEU: "" +
+				"Versión del mod invalido.\n" +
+				"Actualize o reinstale el pack para\n" +
+				"poder ingresar.\n" +
+				"\n" +
+				"Código de Error: %[1]d",
 		},
 	}
-
 )
+
