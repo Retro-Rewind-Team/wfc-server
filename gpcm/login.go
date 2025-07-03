@@ -53,9 +53,12 @@ var msPublicKey = []byte{
 
 var commonDeviceIds = []uint32{
 	0x02000001, // Internal use (leaked)
-	0x0403ac68, // Dolphin default
+
+	// Commented because we allow this, but will still ban other keys
+	// 0x0403ac68, // Dolphin default
 
 	// Publicly shared key dumps
+	0x0204cef9,
 	0x038c864b,
 	0x040e3f97,
 	0x04cb7515,
@@ -63,6 +66,9 @@ var commonDeviceIds = []uint32{
 	0x06bcc32d,
 	0x06d0437a,
 	0x089120c8,
+	0x0a305428,
+	0x0a447b97,
+	0x0a1e97cf,
 	0x0e19d5ed,
 	0x0e31482b,
 	0x2428a8cb,
@@ -474,31 +480,32 @@ func (g *GameSpySession) verifyExLoginInfo(command common.GameSpyCommand, authTo
 
 	g.DeviceId = deviceId
 
-	if !allowDefaultDolphinKeys {
-		// Check common device IDs
-		for _, defaultDeviceId := range commonDeviceIds {
-			if deviceId != defaultDeviceId {
-				continue
-			}
+	// We allow default dolphin keys, but not leaked nands. Check leaked nands
+	// and common keys anyway.
 
-			if strings.HasPrefix(g.HostPlatform, "Dolphin") {
-				g.replyError(GPError{
-					ErrorCode:   ErrLogin.ErrorCode,
-					ErrorString: "Prohibited device ID used in signature.",
-					Fatal:       true,
-					WWFCMessage: WWFCMsgDolphinSetupRequired,
-				})
-			} else {
-				g.replyError(GPError{
-					ErrorCode:   ErrLogin.ErrorCode,
-					ErrorString: "Prohibited device ID used in signature.",
-					Fatal:       true,
-					WWFCMessage: WWFCMsgUnknownLoginError,
-				})
-			}
-
-			return 0
+	// Check common device IDs
+	for _, defaultDeviceId := range commonDeviceIds {
+		if deviceId != defaultDeviceId {
+			continue
 		}
+
+		if strings.HasPrefix(g.HostPlatform, "Dolphin") {
+			g.replyError(GPError{
+				ErrorCode:   ErrLogin.ErrorCode,
+				ErrorString: "Prohibited device ID used in signature.",
+				Fatal:       true,
+				WWFCMessage: WWFCMsgDolphinSetupRequired,
+			})
+		} else {
+			g.replyError(GPError{
+				ErrorCode:   ErrLogin.ErrorCode,
+				ErrorString: "Prohibited device ID used in signature.",
+				Fatal:       true,
+				WWFCMessage: WWFCMsgUnknownLoginError,
+			})
+		}
+
+		return 0
 	}
 
 	return deviceId
