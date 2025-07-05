@@ -12,10 +12,11 @@ type expression struct {
 	ast       *TreeNode
 	context   map[string]string
 	queryGame string
+	ignorevr  bool
 }
 
 // Bug(zdebeer): functions is eval from right to left instead from left to right.
-func Eval(basenode *TreeNode, context map[string]string, queryGame string) (value int64, err error) {
+func Eval(basenode *TreeNode, context map[string]string, queryGame string, ignorevr bool) (value int64, err error) {
 	defer func() {
 		if str := recover(); str != nil {
 			value = 0
@@ -23,7 +24,7 @@ func Eval(basenode *TreeNode, context map[string]string, queryGame string) (valu
 		}
 	}()
 
-	this := &expression{basenode, context, queryGame}
+	this := &expression{basenode, context, queryGame, ignorevr}
 	return this.eval(basenode), nil
 }
 
@@ -250,7 +251,7 @@ func (this *expression) evalMathOperator(fn func(int64, int64) int64, args []*Tr
 	case cnt == 2:
 		if n, ok := args[0].Value.(*IdentityToken); ok {
 			// Remove VR search due to the limited player count
-			if (n.Name == "ev" || n.Name == "eb") && this.queryGame == "mariokartwii" {
+			if (n.Name == "ev" || n.Name == "eb") && this.ignorevr && this.queryGame == "mariokartwii" {
 				return 1
 			}
 		}
