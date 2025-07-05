@@ -2,6 +2,7 @@ package qr2
 
 import (
 	"encoding/gob"
+	"maps"
 	"math/rand"
 	"net"
 	"os"
@@ -270,7 +271,37 @@ func GetSessionServers() []map[string]string {
 			continue
 		}
 
-		servers = append(servers, session.Data)
+		// Clone session data to avoid overwriting the value stored for the
+		// actual player. Only reporting an average in the serverbrowser,
+		// rather than modifying any actual data
+		servers = append(servers, maps.Clone(session.Data))
+
+		if session.groupPointer == nil || len(session.groupPointer.players) == 0 {
+			continue
+		}
+
+		// Sum up and avg the VR of every player in the room.
+		// This is used for a better guage of the room skill when performing
+		// matchmaking.
+
+		totalEv := 0
+		totalEb := 0
+		for pSession := range session.groupPointer.players {
+			ev, err := strconv.Atoi(pSession.Data["ev"])
+			if err == nil {
+				totalEv += ev
+			}
+
+			eb, err := strconv.Atoi(pSession.Data["eb"])
+			if err == nil {
+				totalEb += eb
+			}
+		}
+
+		// Overwrite the old data field in the server
+		pLen := len(session.groupPointer.players)
+		servers[len(servers)-1]["ev"] = strconv.Itoa(totalEv / pLen)
+		servers[len(servers)-1]["eb"] = strconv.Itoa(totalEb / pLen)
 	}
 
 	// Remove unreachable sessions
