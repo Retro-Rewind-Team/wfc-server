@@ -105,6 +105,34 @@ var (
 				"\n" +
 				"Código de Error: %[1]d\n" +
 				"Información de soporte: NG%08[2]x",
+			LangDutch: "" +
+				"Je gebruikt een publieke NAND die al verbannen is.\n" +
+				"Gebruik de standaard Dolphin-NAND.\n" +
+				"Maak een ticket op discord.gg/retrorewind voor hulp.\n" +
+				"\n" +
+				"Foutcode: %[1]d\n" +
+				"Ondersteuningsinformatie: NG%08[2]x",
+			LangCzech: "" +
+				"Používáš uniklý NAND, který je už zakázán.\n" +
+				"Vrať prosím tvůj NAND do výchozího nastavení Dolphin.\n" +
+				"Vstupenka na discord.gg/retrorewind pro pomoc.\n" +
+				"\n" +
+				"Kód Chyby: %[1]d\n" +
+				"Informace o Podpoře: NG%08[2]x",
+			LangTurkish: "" +
+				"Kullandığınız NAND (sistem dosyaları) sızdırılmış.\n" +
+				"Lütfen NAND'inizi Dolphin varsayılanına geri çevirin.\n" +
+				"Yardım için discord.gg/retrorewind'dan destek alabilirsiniz.\n" +
+				"\n" +
+				"Hata Kodu: %[1]d\n" +
+				"Destek Bilgisi: NG%08[2]x",
+			LangFrenchEU: "" +
+				"Vous utilisez une NAND publique qui a déjà été bannie.\n" +
+				"Veuillez retirer votre NAND de Dolphin.\n" +
+				"Un ticket peut être fait sur discord.gg/retrorewind si besoin.\n" +
+				"\n" +
+				"Code Erreur:  %[1]d\n" +
+				"Information Support: NG%08[2]x",
 			LangSpanishEU: "" +
 				"Estás usando una NAND filtrada que ya está baneada.\n" +
 				"Por favor usa la NAND predeterminada por Dolphin.\n" +
@@ -1048,6 +1076,12 @@ var (
 				"perfil.\n" +
 				"\n" +
 				"Código de Error: %[1]d",
+			LangPortugueseEU: "" +
+				"A consola que estás a usar não é\n" +
+				"o dispositivo que foi usado para registar este\n" +
+				"perfil.\n" +
+				"\n" +
+				"Código de Erro: %[1]d",
 		},
 	}
 
@@ -1142,6 +1176,13 @@ var (
 				"correctamente tu NAND.\n" +
 				"\n" +
 				"Código de Error: %[1]d",
+			LangPortugueseEU: "" +
+				"A consola que estás a usar não é\n" +
+				"o dispositivo que foi usado para registar este\n" +
+				"perfil. Por favor verifica que configuraste\n" +
+				"corretamente o teu NAND.\n" +
+				"\n" +
+				"Código de Erro: %[1]d",
 		},
 	}
 
@@ -1225,6 +1266,12 @@ var (
 				"Cree una nueva licencia.\n" +
 				"\n" +
 				"Código de Error: %[1]d",
+			LangPortugueseEU: "" +
+				"O perfil que estás a tentar\n" +
+				"registar é inválido.\n" +
+				"Por favor cria uma nova licensa.\n" +
+				"\n" +
+				"Código de Erro: %[1]d",
 		},
 	}
 
@@ -1294,6 +1341,11 @@ var (
 				"de registrar, ya está en uso.\n" +
 				"\n" +
 				"Código de Error: %[1]d",
+			LangPortugueseEU: "" +
+				"O código de amigo que estás a tentar\n" +
+				"registar já está em uso.\n" +
+				"\n" +
+				"Código de Erro: %[1]d",
 		},
 	}
 
@@ -1365,6 +1417,11 @@ var (
 				"Intente reiniciar su juego.\n" +
 				"\n" +
 				"Código de Error: %[1]d",
+			LangPortugueseEU: "" +
+				"O RETRO WFC não carregou corretamente.\n" +
+				"Tenta reiniciar o jogo.\n" +
+				"\n" +
+				"Código de Erro: %[1]d",
 		},
 	}
 
@@ -1443,6 +1500,12 @@ var (
 				"con tu valor de PC o PB.\n" +
 				"\n" +
 				"Código de Error: %[1]d",
+			LangPortugueseEU: "" +
+				"Foste desconectado do RETRO WFC\n" +
+				"devido a um valor\n" +
+				"CR ou CB inválido.\n" +
+				"\n" +
+				"Código de Erro: %[1]d",
 		},
 	}
 
@@ -1525,7 +1588,13 @@ var (
 				"poder ingresar.\n" +
 				"\n" +
 				"Código de Error: %[1]d",
+			LangPortugueseEU: "" +
+				"O.\n" +
+				"T.\n" +
+				"A.\n" +
+				"\n" +
+				"Código de Erro: %[1]d",
 		},
 	}
-)
 
+)
