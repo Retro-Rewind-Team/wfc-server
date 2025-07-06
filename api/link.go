@@ -31,6 +31,7 @@ var LinkRoute = MakeRouteSpec[LinkRequest, LinkResponse](
 
 var (
 	ErrActionMissing       = errors.New("Action missing in request")
+	ErrActionDNE           = errors.New("Specified action does not exist")
 	ErrDiscordIDMissing    = errors.New("Discord ID missing or invalid")
 	ErrDiscordLinked       = errors.New("Discord ID already linked to another profile")
 	ErrDiscordWrongStep    = errors.New("Profile is not in the correct step to link Discord ID")
@@ -57,7 +58,7 @@ func HandleLink(req any, _ bool, _ *http.Request) (any, int, error) {
 		return res, http.StatusBadRequest, ErrDiscordIDMissing
 	}
 
-	if _req.Action == "" || (_req.Action != "link" && _req.Action != "check" && _req.Action != "unlink") {
+	if _req.Action == "" {
 		return res, http.StatusBadRequest, ErrActionMissing
 	}
 
@@ -67,7 +68,8 @@ func HandleLink(req any, _ bool, _ *http.Request) (any, int, error) {
 		return res, http.StatusInternalServerError, gpcm.ErrNoSession
 	}
 
-	if _req.Action == "link" {
+	switch _req.Action {
+	case "link":
 		// This is kind of just stuck in here, bits of duplicate code. Should
 		// be cleaned up eventually.
 		if _req.Force {
@@ -110,7 +112,7 @@ func HandleLink(req any, _ bool, _ *http.Request) (any, int, error) {
 		if gpcm.SetSessionDiscordInfo(_req.ProfileID, database.LS_STARTED, _req.DiscordID) != nil {
 			return res, http.StatusInternalServerError, gpcm.ErrNoSession
 		}
-	} else if _req.Action == "check" {
+	case "check":
 		// Once the user friends the correct code, the stage progresses from
 		// LS_STARTED to LS_FRIENDED. See gpcm/friend::handleFriendBot
 		if linkStage != database.LS_FRIENDED {
@@ -130,7 +132,7 @@ func HandleLink(req any, _ bool, _ *http.Request) (any, int, error) {
 		if user.UpdateDiscordID(pool, ctx, _req.DiscordID) != nil {
 			return res, http.StatusInternalServerError, ErrTransaction
 		}
-	} else if _req.Action == "reset" {
+	case "reset":
 		// Only requirement to reset is that the profile has begun linking, and your ID matches
 		// Since the ID is applied to the gpcm session on first link, it
 		// prevents griefing (if a reset command is ever added), but squatting
@@ -149,6 +151,8 @@ func HandleLink(req any, _ bool, _ *http.Request) (any, int, error) {
 		if user.UpdateDiscordID(pool, ctx, "") != nil {
 			return res, http.StatusInternalServerError, ErrTransaction
 		}
+	default:
+		return res, http.StatusBadRequest, ErrActionDNE
 	}
 
 	return res, http.StatusOK, nil
