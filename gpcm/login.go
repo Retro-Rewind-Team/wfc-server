@@ -185,6 +185,16 @@ func (g *GameSpySession) login(command common.GameSpyCommand) {
 	g.GameCode = gamecd
 	g.Region = region
 	g.Language = lang
+
+	if exLangStr, exLangExists := command.OtherValues["ex_lang"]; exLangExists {
+		exLang, err := strconv.ParseUint(exLangStr, 10, 8)
+
+		if err == nil {
+			g.Language = byte(exLang)
+			logging.Info(g.ModuleName, "ex_lang:", aurora.Cyan(exLang))
+		}
+	}
+
 	g.ConsoleFriendCode = cfc
 	g.InGameName = ingamesn
 	g.UnitCode = unitcd
