@@ -32,6 +32,13 @@ var (
 	ErrCsnumMismatch    = errors.New("csnum mismatch")
 )
 
+var newUsers = []User{}
+
+func GetNewUsers() []User {
+	defer func() { newUsers = []User{} }()
+	return newUsers
+}
+
 func handleCsnum(pool *pgxpool.Pool, ctx context.Context, user *User, csnum string, lastIPAddress *string, ipAddress string) (bool, error) {
 	success := false
 	csnumList := ""
@@ -106,6 +113,8 @@ func LoginUserToGPCM(pool *pgxpool.Pool, ctx context.Context, userId uint64, gsb
 		}
 
 		logging.Notice("DATABASE", "Created new GPCM user:", aurora.Cyan(userId), aurora.Cyan(gsbrcd), aurora.Cyan(user.ProfileId))
+
+		newUsers = append(newUsers, user)
 	} else {
 		var firstName *string
 		var lastName *string
