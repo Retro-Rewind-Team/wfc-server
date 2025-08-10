@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -63,6 +64,11 @@ var symbolEquivalences = map[rune]rune{
 	'': 's',
 }
 
+// This is basically [A-Za-z0-9]+\.[A-Za-z]+/ but with added cases for if the user tries to evade the filter
+var urlPattern = regexp.MustCompile(
+    `(?i)[a-zA-Z0-9-]+(\.|(\s*[\[\(\{]?\s*dot\s*[\]\)\}]?\s*))+[a-zA-Z0-9-]+(\s*/\s*|\s*[\[\(\{]?\s*slash\s*[\]\)\}]?\s*)`,
+)
+
 func CacheProfanityFile() error {
 	fileInfo, err := os.Stat(profanityFilePath)
 	if err != nil {
@@ -120,6 +126,9 @@ func IsBadWord(word string) (bool, error) {
 
 	}
 
+	if urlPattern.MatchString(word) {
+		return true, nil
+	}
 	normalizedWord := normalizeWord(word)
 	for _, line := range profanityFileLines {
 		if strings.EqualFold(line, normalizedWord) {
