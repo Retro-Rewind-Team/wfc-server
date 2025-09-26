@@ -34,14 +34,15 @@ func handlePinfoImpl(req PinfoRequest, validSecret bool) (*database.User, int, e
 	if !validSecret {
 		// Invalid secret, only report normal user info
 		ret = &database.User{
-			ProfileId:    realUser.ProfileId,
-			Restricted:   realUser.Restricted,
-			BanReason:    realUser.BanReason,
-			OpenHost:     realUser.OpenHost,
-			LastInGameSn: realUser.LastInGameSn,
-			BanIssued:    realUser.BanIssued,
-			BanExpires:   realUser.BanExpires,
-			DiscordID:    realUser.DiscordID,
+			ProfileId:     realUser.ProfileId,
+			Restricted:    realUser.Restricted,
+			BanReason:     realUser.BanReason,
+			OpenHost:      realUser.OpenHost,
+			LastInGameSn:  realUser.LastInGameSn,
+			BanIssued:     realUser.BanIssued,
+			BanExpires:    realUser.BanExpires,
+			DiscordID:     realUser.DiscordID,
+			LastStoredMii: realUser.LastStoredMii,
 		}
 	} else {
 		ret = &realUser
