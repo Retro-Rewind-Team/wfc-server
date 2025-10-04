@@ -15,6 +15,28 @@ import (
 	"github.com/logrusorgru/aurora/v3"
 )
 
+type RacePlayer struct {
+	TeamID              int
+	RaceStage           uint32
+	LastRaceStageUpdate time.Time
+}
+
+type RaceResult struct {
+	ProfileID     uint32
+	PlayerID      int
+	FinishTime    uint32
+	CharacterID   uint32
+	VehicleID     uint32
+	PlayerCount   uint32
+	FinishPos     int
+	FramesIn1st   uint32
+	CourseID      int
+	EngineClassID int
+}
+
+var racePlayers = map[string]map[uint32][]RacePlayer{} // GroupName -> ProfileID -> []RacePlayer
+var raceResults = map[string]map[int][]RaceResult{}    // GroupName -> RaceNumber -> []RaceResult
+
 type Group struct {
 	GroupID       uint32
 	GroupName     string
@@ -523,6 +545,310 @@ func ProcessMKWSelectRecord(profileId uint32, key string, value string) {
 		return
 	}
 
+}
+
+// parse message like "key1=val1|key2=val2|key3=val3" into a map of key to uint32 value
+func GetMessageParts(message string) map[string]uint32 {
+	parts := strings.Split(message, "|")
+	result := make(map[string]uint32)
+
+	for _, part := range parts {
+		kv := strings.SplitN(part, "=", 2)
+		if len(kv) != 2 {
+			continue
+		}
+
+		key := kv[0]
+		value, err := strconv.ParseUint(kv[1], 10, 32)
+		if err != nil {
+			continue
+		}
+
+		result[key] = uint32(value)
+	}
+
+	return result
+}
+
+func ProcessMKWExtendedTeams(profileId uint32, value string) {
+	moduleName := "QR2:MKWExtendedTeams:" + strconv.FormatUint(uint64(profileId), 10)
+
+	mutex.Lock()
+	login := logins[profileId]
+	if login == nil {
+		mutex.Unlock()
+		logging.Warn(moduleName, "Received Extended Teams record from non-existent profile ID", aurora.Cyan(profileId))
+		return
+	}
+
+	session := login.session
+	if session == nil {
+		mutex.Unlock()
+		logging.Warn(moduleName, "Received Extended Teams record from profile ID", aurora.Cyan(profileId), "but no session exists")
+		return
+	}
+	mutex.Unlock()
+
+	group := session.groupPointer
+	if group == nil {
+		return
+	}
+
+	// Example value: hi=0|tm=2
+	// It would mean the first player (hi) of sending console is on team 2 (tm).
+	teamId := -1
+	hudId := -1
+	parts := GetMessageParts(value)
+	if len(parts) != 2 {
+		logging.Error(moduleName, "Invalid Extended Teams record format:", aurora.Cyan(value))
+		return
+	}
+
+	val, ok := parts["tm"]
+	if !ok {
+		logging.Error(moduleName, "Missing team ID in Extended Teams record:", aurora.Cyan(value))
+		return
+	}
+	teamId = int(val)
+
+	val, ok = parts["hi"]
+	if !ok {
+		logging.Error(moduleName, "Missing player ID in Extended Teams record:", aurora.Cyan(value))
+		return
+	}
+
+	hudId = int(val)
+
+	if hudId < 0 || hudId > 1 {
+		logging.Error(moduleName, "Invalid player ID:", aurora.Cyan(hudId))
+		return
+	}
+
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	_, ok = racePlayers[group.GroupName]
+	if !ok {
+		racePlayers[group.GroupName] = map[uint32][]RacePlayer{}
+	}
+
+	player, ok := racePlayers[group.GroupName][profileId]
+	if !ok {
+		racePlayers[group.GroupName][profileId] = make([]RacePlayer, 2)
+		player = racePlayers[group.GroupName][profileId]
+	}
+
+	player[hudId].TeamID = teamId
+}
+
+func ProcessMKWRaceStage(profileId uint32, value string) {
+	moduleName := "QR2:MKWRaceStage:" + strconv.FormatUint(uint64(profileId), 10)
+
+	mutex.Lock()
+	login := logins[profileId]
+	if login == nil {
+		mutex.Unlock()
+		logging.Warn(moduleName, "Received MKW Race Stage record from non-existent profile ID", aurora.Cyan(profileId))
+		return
+	}
+
+	session := login.session
+	if session == nil {
+		mutex.Unlock()
+		logging.Warn(moduleName, "Received MKW Race Stage record from profile ID", aurora.Cyan(profileId), "but no session exists")
+		return
+	}
+	mutex.Unlock()
+
+	group := session.groupPointer
+	if group == nil {
+		return
+	}
+
+	raceStage, err := strconv.ParseUint(value, 10, 32)
+	if err != nil {
+		logging.Error(moduleName, "Error decoding race stage:", err.Error())
+		return
+	}
+
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	_, ok := racePlayers[group.GroupName]
+	if !ok {
+		racePlayers[group.GroupName] = map[uint32][]RacePlayer{}
+	}
+
+	player, ok := racePlayers[group.GroupName][profileId]
+	if !ok {
+		racePlayers[group.GroupName][profileId] = make([]RacePlayer, 2)
+		player = racePlayers[group.GroupName][profileId]
+	}
+
+	player[0].RaceStage = uint32(raceStage)
+	player[0].LastRaceStageUpdate = time.Now().UTC()
+
+	player[1].RaceStage = uint32(raceStage)
+	player[1].LastRaceStageUpdate = time.Now().UTC()
+}
+
+func ProcessMKWRaceResult(profileId uint32, value string) {
+	moduleName := "QR2:MKWRaceResult:" + strconv.FormatUint(uint64(profileId), 10)
+
+	mutex.Lock()
+	login := logins[profileId]
+	if login == nil {
+		mutex.Unlock()
+		logging.Warn(moduleName, "Received MKW Race Result record from non-existent profile ID", aurora.Cyan(profileId))
+		return
+	}
+
+	session := login.session
+	if session == nil {
+		mutex.Unlock()
+		logging.Warn(moduleName, "Received MKW Race Result record from profile ID", aurora.Cyan(profileId), "but no session exists")
+		return
+	}
+	mutex.Unlock()
+
+	group := session.groupPointer
+	if group == nil {
+		return
+	}
+
+	// Message format: hi=%d|ch=%d|ve=%d|ft=%u|fp=%d|f1=%u|pc=%d
+	// hi = HUD ID (0 or 1)
+	// ch = Character ID
+	// ve = Vehicle ID
+	// ft = Finish Time (float encoded as uint32)
+	// fp = Finish Position (1-12 ?)
+	// f1 = Frames in 1st position (uint32)
+	// pc = Player count (1-12)
+	parts := GetMessageParts(value)
+	if len(parts) != 7 {
+		logging.Error(moduleName, "Invalid MKW Race Result record format:", aurora.Cyan(value))
+		return
+	}
+
+	hudId := -1
+	characterId := uint32(0)
+	vehicleId := uint32(0)
+	finishTime := uint32(0)
+	finishPosition := -1
+	framesIn1st := uint32(0)
+	playerCount := -1
+
+	val, ok := parts["hi"]
+	if !ok {
+		logging.Error(moduleName, "Missing HUD ID in MKW Race Result record:", aurora.Cyan(value))
+		return
+	}
+
+	hudId = int(val)
+
+	val, ok = parts["ch"]
+	if !ok {
+		logging.Error(moduleName, "Missing Character ID in MKW Race Result record:", aurora.Cyan(value))
+		return
+	}
+
+	characterId = val
+
+	val, ok = parts["ve"]
+	if !ok {
+		logging.Error(moduleName, "Missing Vehicle ID in MKW Race Result record:", aurora.Cyan(value))
+		return
+	}
+
+	vehicleId = val
+
+	val, ok = parts["ft"]
+	if !ok {
+		logging.Error(moduleName, "Missing Finish Time in MKW Race Result record:", aurora.Cyan(value))
+		return
+	}
+
+	finishTime = val
+
+	val, ok = parts["fp"]
+	if !ok {
+		logging.Error(moduleName, "Missing Finish Position in MKW Race Result record:", aurora.Cyan(value))
+		return
+	}
+
+	finishPosition = int(val)
+	val, ok = parts["f1"]
+	if !ok {
+		logging.Error(moduleName, "Missing Frames in 1st in MKW Race Result record:", aurora.Cyan(value))
+		return
+	}
+
+	framesIn1st = val
+
+	val, ok = parts["pc"]
+	if !ok {
+		logging.Error(moduleName, "Missing Player Count in MKW Race Result record:", aurora.Cyan(value))
+		return
+	}
+
+	playerCount = int(val)
+
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if group.MKWRaceNumber == 0 {
+		logging.Error(moduleName, "Received MKW Race Result record but no races have been started")
+		return
+	}
+
+	if raceResults[group.GroupName] == nil {
+		raceResults[group.GroupName] = map[int][]RaceResult{}
+
+	}
+
+	raceResults[group.GroupName][group.MKWRaceNumber] = append(raceResults[group.GroupName][group.MKWRaceNumber], RaceResult{
+		ProfileID:   profileId,
+		PlayerID:    hudId,
+		FinishTime:  finishTime,
+		CharacterID: characterId,
+		VehicleID:   vehicleId,
+		PlayerCount: uint32(playerCount),
+		FinishPos:   finishPosition,
+		FramesIn1st: framesIn1st,
+		// Redundant but efficient to store these here
+		CourseID:      group.MKWCourseID,
+		EngineClassID: group.MKWEngineClassID,
+	})
+}
+
+func GetRaceResultsForGroup(groupName string) (map[int][]RaceResult, map[uint32][]RacePlayer) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	groupPlayers, ok := racePlayers[groupName]
+	if !ok {
+		return nil, nil
+	}
+
+	groupResults, ok := raceResults[groupName]
+	if !ok {
+		return nil, groupPlayers
+	}
+
+	// Return copies
+	copiedRaceResults := make(map[int][]RaceResult)
+	for raceNumber, results := range groupResults {
+		copiedRaceResults[raceNumber] = make([]RaceResult, len(results))
+		copy(copiedRaceResults[raceNumber], results)
+	}
+
+	copiedGroupPlayers := make(map[uint32][]RacePlayer)
+	for playerID, playerResults := range groupPlayers {
+		copiedGroupPlayers[playerID] = make([]RacePlayer, len(playerResults))
+		copy(copiedGroupPlayers[playerID], playerResults)
+	}
+
+	return copiedRaceResults, copiedGroupPlayers
 }
 
 // saveGroups saves the current groups state to disk.
