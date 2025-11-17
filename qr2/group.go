@@ -33,6 +33,16 @@ type Group struct {
 
 var groups = map[string]*Group{}
 
+func normalizeMKWRegion(rk string) string {
+	// Check and remove regional searches due to the limited player count
+	// China (ID 6) gets a pass because it was never released
+	if len(rk) == 4 && (strings.HasPrefix(rk, "vs_") || strings.HasPrefix(rk, "bt_")) && rk[3] >= '0' && rk[3] < '6' {
+		return rk[:2]
+	}
+
+	return rk
+}
+
 func processResvOK(moduleName string, matchVersion int, reservation common.MatchCommandDataReservation, resvOK common.MatchCommandDataResvOK, sender, destination *Session) bool {
 	if len(groups) >= 100000 {
 		logging.Error(moduleName, "Hit arbitrary global maximum group count (somehow)")
@@ -64,15 +74,7 @@ func processResvOK(moduleName string, matchVersion int, reservation common.Match
 		}
 
 		if group.GameName == "mariokartwii" {
-			rk := sender.Data["rk"]
-
-			// Check and remove regional searches due to the limited player count
-			// China (ID 6) gets a pass because it was never released
-			if len(rk) == 4 && (strings.HasPrefix(rk, "vs_") || strings.HasPrefix(rk, "bt_")) && rk[3] >= '0' && rk[3] < '6' {
-				rk = rk[:2]
-			}
-
-			group.MKWRegion = rk
+			group.MKWRegion = normalizeMKWRegion(sender.Data["rk"])
 		}
 
 		sender.Data["+joinindex"] = "0"

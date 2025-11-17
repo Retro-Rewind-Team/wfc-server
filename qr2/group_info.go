@@ -152,6 +152,13 @@ func getGroupsRaw(gameNames []string, groupNames []string) []GroupInfo {
 			}
 		}
 
+		if groupInfo.GameName == "mariokartwii" {
+			region := normalizeMKWRegion(groupInfo.PlayersRaw[groupInfo.SortedJoinIndex[0]]["rk"])
+
+			group.MKWRegion = region
+			groupInfo.MKWRegion = region
+		}
+
 		groupsCopy = append(groupsCopy, groupInfo)
 	}
 
