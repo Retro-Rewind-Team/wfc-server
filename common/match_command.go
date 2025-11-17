@@ -724,3 +724,15 @@ func LogMatchCommand(moduleName string, dest string, command byte, data MatchCom
 		logging.Notice(moduleName, "Reason:", aurora.BrightRed(data.ResvDeny.ReasonString), "("+aurora.Cyan(reasonByte).String()+")")
 	}
 }
+
+func CloneReservationData(data MatchCommandData) MatchCommandData {
+	clone := MatchCommandData{
+		Version: data.Version,
+		Command: data.Command,
+	}
+
+	reservationCopy := *data.Reservation
+	clone.Reservation = &reservationCopy
+
+	return clone
+}

@@ -324,6 +324,18 @@ func GetSearchID(addr uint64) uint64 {
 	return 0
 }
 
+func GetReservationForProfile(profileID uint32) (common.MatchCommandData, uint64, uint64, bool) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	sessionKey := makeLookupAddr(logins[profileID].session.Addr.String())
+	if logins[profileID].session.Reservation.Reservation == nil {
+		return common.MatchCommandData{}, logins[profileID].session.ReservationID, sessionKey, false
+	}
+
+	return common.CloneReservationData(logins[profileID].session.Reservation), logins[profileID].session.ReservationID, sessionKey, true
+}
+
 // Save the sessions to a file. Expects the mutex to be locked.
 func saveSessions() error {
 	file, err := os.OpenFile("state/qr2_sessions.gob", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
