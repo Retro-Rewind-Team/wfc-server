@@ -63,6 +63,30 @@ func (g *GameSpySession) handleWWFCReport(command common.GameSpyCommand) {
 			}
 
 			qr2.ProcessMKWSelectRecord(g.User.ProfileId, key, value)
+
+		case "wl:mkw_extended_teams":
+			if g.GameName != "mariokartwii" {
+				logging.Warn(g.ModuleName, "Ignoring", keyColored, "from wrong game")
+				continue
+			}
+
+			qr2.ProcessMKWExtendedTeams(g.User.ProfileId, value)
+
+		case "wl:mkw_race_stage":
+			if g.GameName != "mariokartwii" {
+				logging.Warn(g.ModuleName, "Ignoring", keyColored, "from wrong game")
+				continue
+			}
+
+			qr2.ProcessMKWRaceStage(g.User.ProfileId, value)
+
+		case "wl:mkw_race_result":
+			if g.GameName != "mariokartwii" {
+				logging.Warn(g.ModuleName, "Ignoring", keyColored, "from wrong game")
+				continue
+			}
+
+			qr2.ProcessMKWRaceResult(g.User.ProfileId, value)
 		}
 	}
 }
