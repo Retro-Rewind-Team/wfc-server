@@ -114,7 +114,8 @@ func LoginUserToGPCM(pool *pgxpool.Pool, ctx context.Context, userId uint64, gsb
 
 		logging.Notice("DATABASE", "Created new GPCM user:", aurora.Cyan(userId), aurora.Cyan(gsbrcd), aurora.Cyan(user.ProfileId))
 
-		newUsers = append(newUsers, user)
+		// Defer appending so the user is fully initialized (surely!)
+		defer func() { newUsers = append(newUsers, user) }()
 	} else {
 		var firstName *string
 		var lastName *string
