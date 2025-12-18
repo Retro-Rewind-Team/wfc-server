@@ -7,9 +7,6 @@ import (
 	"regexp"
 	"strings"
 	"wwfc/database"
-	"wwfc/logging"
-
-	"github.com/logrusorgru/aurora/v3"
 )
 
 type QueryRequest struct {
@@ -19,7 +16,7 @@ type QueryRequest struct {
 	Csnum     string `json:"csnum"`
 	UserID    uint64 `json:"userID"`
 	DiscordID string `json:"discordID"`
-	PID       uint32 `json:"pid"`
+	ProfileID uint32 `json:"pid"`
 	// 0: Either, 1: No Ban, 2: Ban
 	HasBan byte `json:"hasban"`
 }
@@ -60,11 +57,11 @@ func HandleQuery(req any, _ bool, _ *http.Request) (any, int, error) {
 	}
 
 	var query string
-	if _req.PID != 0 {
-		user, err := database.GetProfile(pool, ctx, _req.PID)
+	if _req.ProfileID != 0 {
+		user, err := database.GetProfile(pool, ctx, _req.ProfileID)
 
 		if err != nil {
-			return nil, http.StatusBadRequest, fmt.Errorf("failed to lookup database user '%d': %s", _req.PID, err)
+			return nil, http.StatusBadRequest, fmt.Errorf("failed to lookup database user '%d': %s", _req.ProfileID, err)
 		}
 
 		query = makeQueryFromUser(user, _req)
@@ -72,43 +69,16 @@ func HandleQuery(req any, _ bool, _ *http.Request) (any, int, error) {
 		query = makeQuery(_req)
 	}
 
-	logging.Info("QUERY", "Executing query", aurora.Cyan(query))
+	// TODO: Return a count of the total number of matches, do something
+	// about returing 80000 matches if the query is vague enough
 
-	rows, err := pool.Query(ctx, query)
+	users, err := database.ScanUsers(pool, ctx, query)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
-	defer rows.Close()
-
-	pids := []uint32{}
-
-	count := 0
-	for rows.Next() {
-		count++
-
-		var pid uint32
-		err := rows.Scan(&pid)
-		if err != nil {
-			return nil, http.StatusInternalServerError, err
-		}
-
-		pids = append(pids, pid)
-
-		// TODO: Return a count of the total number of matches, do something
-		// about returing 80000 matches if the query is vague enough
-	}
 
 	res := QueryResponse{}
-	res.Users = []database.User{}
-
-	for _, pid := range pids {
-		user, err := database.GetProfile(pool, ctx, pid)
-		if err != nil {
-			return nil, http.StatusInternalServerError, err
-		}
-
-		res.Users = append(res.Users, user)
-	}
+	res.Users = users
 
 	return res, http.StatusOK, nil
 }
@@ -130,7 +100,7 @@ func validateOptions(req QueryRequest) error {
 		return ErrInvalidHasBan
 	}
 
-	if req.IP == "" && req.Csnum == "" && req.DeviceID == 0 && req.UserID == 0 && req.DiscordID == "" && req.PID == 0 {
+	if req.IP == "" && req.Csnum == "" && req.DeviceID == 0 && req.UserID == 0 && req.DiscordID == "" && req.ProfileID == 0 {
 		return ErrEmptyParams
 	}
 
@@ -170,7 +140,7 @@ func makeQuery(req QueryRequest) string {
 	return QUERYBASE + strings.Join(queries, " AND ") + ";"
 }
 
-func makeQueryFromUser(user database.User, rrr QueryRequest) string {
+func makeQueryFromUser(user database.User, req QueryRequest) string {
 	queries := []string{}
 
 	if user.LastIPAddress != "" {
@@ -202,7 +172,7 @@ func makeQueryFromUser(user database.User, rrr QueryRequest) string {
 
 	query := strings.Join(queries, " OR ")
 
-	switch rrr.HasBan {
+	switch req.HasBan {
 	case 1:
 		query = fmt.Sprintf("(%s) AND has_ban = true", query)
 	case 2:

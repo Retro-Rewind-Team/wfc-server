@@ -96,6 +96,7 @@ func StartServer(reload bool) {
 		BanRoute,
 		ClearRoute,
 		GetHashRoute,
+		InvestigateRoute,
 		KickRoute,
 		LinkRoute,
 		MotdRoute,

@@ -259,3 +259,42 @@ func UpdateMKWFriendInfo(pool *pgxpool.Pool, ctx context.Context, profileId uint
 		panic(err)
 	}
 }
+
+// ScanUsers takes a query returning pids and collect the matching users
+func ScanUsers(pool *pgxpool.Pool, ctx context.Context, query string) ([]User, error) {
+	logging.Info("QUERY", "Executing query", aurora.Cyan(query))
+
+	rows, err := pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	pids := []uint32{}
+
+	count := 0
+	for rows.Next() {
+		count++
+
+		var pid uint32
+		err := rows.Scan(&pid)
+		if err != nil {
+			return nil, err
+		}
+
+		pids = append(pids, pid)
+	}
+
+	users := []User{}
+
+	for _, pid := range pids {
+		user, err := GetProfile(pool, ctx, pid)
+		if err != nil {
+			return nil, err
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
+}
