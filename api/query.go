@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 	"wwfc/database"
 	"wwfc/logging"
 
@@ -48,7 +49,7 @@ var (
 	numOnlyRegex        = regexp.MustCompile("^[0-9]+$")
 )
 
-const QUERYBASE = `SELECT profile_id FROM users WHERE`
+const QUERYBASE = `SELECT profile_id FROM users WHERE `
 
 func HandleQuery(req any, _ bool, _ *http.Request) (any, int, error) {
 	_req := req.(QueryRequest)
@@ -137,46 +138,43 @@ func validateOptions(req QueryRequest) error {
 }
 
 func makeQuery(req QueryRequest) string {
-	query := QUERYBASE
+	queries := []string{}
 
 	if req.IP != "" {
-		query += fmt.Sprintf(" last_ip_address = '%s' AND", req.IP)
+		queries = append(queries, fmt.Sprintf("last_ip_address = '%s'", req.IP))
 	}
 
 	if req.DeviceID != 0 {
-		query += fmt.Sprintf(" %d = ANY(ng_device_id) AND", req.DeviceID)
+		queries = append(queries, fmt.Sprintf("%d = ANY(ng_device_id)", req.DeviceID))
 	}
 
 	if req.Csnum != "" {
-		query += fmt.Sprintf(" '%s' = ANY(csnum) AND", req.Csnum)
+		queries = append(queries, fmt.Sprintf("'%s' = ANY(csnum)", req.Csnum))
 	}
 
 	if req.DiscordID != "" {
-		query += fmt.Sprintf(" discord_id = '%s' AND", req.DiscordID)
+		queries = append(queries, fmt.Sprintf("discord_id = '%s'", req.DiscordID))
 	}
 
 	if req.UserID != 0 {
-		query += fmt.Sprintf(" user_id = %d AND", req.UserID)
+		queries = append(queries, fmt.Sprintf("user_id = %d", req.UserID))
 	}
 
 	switch req.HasBan {
 	case 1:
-		query += " has_ban = false AND"
+		queries = append(queries, "has_ban = false")
 	case 2:
-		query += " has_ban = true AND"
+		queries = append(queries, "has_ban = true")
 	}
 
-	query = query[0 : len(query)-4]
-	query += ";"
-
-	return query
+	return QUERYBASE + strings.Join(queries, " AND ") + ";"
 }
 
 func makeQueryFromUser(user database.User, rrr QueryRequest) string {
-	query := QUERYBASE
+	queries := []string{}
 
 	if user.LastIPAddress != "" {
-		query += fmt.Sprintf(" last_ip_address = '%s' OR", user.LastIPAddress)
+		queries = append(queries, fmt.Sprintf("last_ip_address = '%s'", user.LastIPAddress))
 	}
 
 	deviceIDs := []string{}
@@ -189,26 +187,29 @@ func makeQueryFromUser(user database.User, rrr QueryRequest) string {
 	}
 
 	if len(deviceIDs) > 0 {
-		query += fmt.Sprintf(" %s && ng_device_id OR", fmtPSQLArray(deviceIDs))
+		queries = append(queries, fmt.Sprintf("%s && ng_device_id", fmtPSQLArray(deviceIDs)))
 	}
 
 	if len(user.Csnum) > 0 {
-		query += fmt.Sprintf(" %s && csnum OR", fmtPSQLArray(user.Csnum))
+		queries = append(queries, fmt.Sprintf("%s && csnum", fmtPSQLArray(user.Csnum)))
 	}
 
-	query += fmt.Sprintf(" user_id = %d OR", user.UserId)
+	queries = append(queries, fmt.Sprintf("user_id = %d", user.UserId))
+
+	if user.DiscordID != "" {
+		queries = append(queries, fmt.Sprintf("discord_id = '%s'", user.DiscordID))
+	}
+
+	query := strings.Join(queries, " OR ")
 
 	switch rrr.HasBan {
 	case 1:
-		query += " has_ban = false OR"
+		query = fmt.Sprintf("(%s) AND has_ban = true", query)
 	case 2:
-		query += " has_ban = true OR"
+		query = fmt.Sprintf("(%s) AND has_ban = true", query)
 	}
 
-	query = query[0 : len(query)-3]
-	query += ";"
-
-	return query
+	return QUERYBASE + query + ";"
 }
 
 func fmtPSQLArray[S any](arr []S) string {
