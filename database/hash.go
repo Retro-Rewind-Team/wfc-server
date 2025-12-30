@@ -7,8 +7,8 @@ import (
 	"wwfc/logging"
 
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/linkdata/deadlock"
 	"github.com/logrusorgru/aurora/v3"
-	"github.com/sasha-s/go-deadlock"
 )
 
 const (

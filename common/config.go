@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"os"
 
-	"github.com/sasha-s/go-deadlock"
+	"github.com/linkdata/deadlock"
 )
 
 type Config struct {
@@ -42,7 +42,7 @@ type Config struct {
 	KeyPathDS     string `xml:"keyPathDS"`
 
 	FriendBotPID string `xml:"friendBotPID"`
-	APISecret string `xml:"apiSecret"`
+	APISecret    string `xml:"apiSecret"`
 
 	AllowDefaultDolphinKeys     bool   `xml:"allowDefaultDolphinKeys"`
 	AllowMultipleDeviceIDs      string `xml:"allowMultipleDeviceIDs"`
