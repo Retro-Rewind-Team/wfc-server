@@ -7,6 +7,7 @@ profanity.txt
 # Local scripts
 *.sh
 *.bat
+!build.sh
 
 # Logs
 logs

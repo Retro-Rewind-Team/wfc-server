@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/rpc"
@@ -31,7 +32,8 @@ import (
 )
 
 var (
-	config = common.GetConfig()
+	config  = common.GetConfig()
+	version string
 )
 
 func main() {
@@ -43,6 +45,14 @@ func main() {
 	// This is to allow restarting the backend without closing all connections.
 	noSignal := false
 	noReload := false
+
+	for _, arg := range args {
+		switch arg {
+		case "--version", "-v":
+			fmt.Printf("wfc-server commit %s\n", version)
+			os.Exit(0)
+		}
+	}
 
 	if len(args) > 1 {
 		for _, arg := range args[1:] {
