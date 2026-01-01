@@ -21,7 +21,7 @@ func evalFilter(t *testing.T, expression string, queryGame string, context map[s
 		return 0, err
 	}
 
-	ret, err := filter.Eval(tree, context, queryGame)
+	ret, err := filter.Eval(tree, context, queryGame, true)
 	if err != nil {
 		t.Error(err)
 		return 0, err
