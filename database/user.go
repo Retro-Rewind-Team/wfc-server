@@ -33,6 +33,8 @@ const (
 	GetMKWFriendInfoQuery    = `SELECT mariokartwii_friend_info FROM users WHERE profile_id = $1`
 	UpdateMKWFriendInfoQuery = `UPDATE users SET mariokartwii_friend_info = $2 WHERE profile_id = $1`
 	CountTotalUsersQuery     = `SELECT COUNT(DISTINCT csnum) FROM users`
+	GetMKWVRBRQuery          = `SELECT COALESCE(mariokartwii_vr, 0), COALESCE(mariokartwii_br, 0), (mariokartwii_vr IS NOT NULL AND mariokartwii_br IS NOT NULL) FROM users WHERE profile_id = $1`
+	UpdateMKWVRBRQuery       = `UPDATE users SET mariokartwii_vr = $2, mariokartwii_br = $3 WHERE profile_id = $1`
 )
 
 type LinkStage byte
@@ -296,6 +298,24 @@ func UpdateMKWFriendInfo(pool *pgxpool.Pool, ctx context.Context, profileId uint
 	if err != nil {
 		panic(err)
 	}
+}
+
+func GetMKWVRBR(pool *pgxpool.Pool, ctx context.Context, profileId uint32) (int32, int32, bool) {
+	var vr int32
+	var br int32
+	var found bool
+
+	err := pool.QueryRow(ctx, GetMKWVRBRQuery, profileId).Scan(&vr, &br, &found)
+	if err != nil {
+		return 0, 0, false
+	}
+
+	return vr, br, found
+}
+
+func UpdateMKWVRBR(pool *pgxpool.Pool, ctx context.Context, profileId uint32, vr int32, br int32) error {
+	_, err := pool.Exec(ctx, UpdateMKWVRBRQuery, profileId, vr, br)
+	return err
 }
 
 // ScanUsers takes a query returning pids and collect the matching users
