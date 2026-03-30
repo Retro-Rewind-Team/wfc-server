@@ -31,6 +31,12 @@ func handlePinfoImpl(req PinfoRequest, validSecret bool) (*database.User, int, e
 		return &database.User{}, http.StatusInternalServerError, err
 	}
 
+	vr, br, ratingErr := database.GetMKWRawVRBR(pool, ctx, req.ProfileID)
+	if ratingErr == nil {
+		realUser.VR = vr
+		realUser.BR = br
+	}
+
 	if !validSecret {
 		// Invalid secret, only report normal user info
 		ret = &database.User{
@@ -42,6 +48,8 @@ func handlePinfoImpl(req PinfoRequest, validSecret bool) (*database.User, int, e
 			BanIssued:    realUser.BanIssued,
 			BanExpires:   realUser.BanExpires,
 			DiscordID:    realUser.DiscordID,
+			VR:           realUser.VR,
+			BR:           realUser.BR,
 		}
 	} else {
 		ret = &realUser
