@@ -106,6 +106,7 @@ func StartServer(reload bool) {
 		PinfoRoute,
 		QueryRoute,
 		RemoveHashRoute,
+		SetMKWRatingRoute,
 		SetHashRoute,
 		UnbanRoute,
 	}
