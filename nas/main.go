@@ -159,12 +159,6 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check for /api/mkw_rr_ratings
-	if r.URL.Path == "/api/mkw_rr_ratings" {
-		api.HandleMKWRatings(w, r)
-		return
-	}
-
 	// Check for /api/stats
 	if r.URL.Path == "/api/stats" {
 		api.HandleStats(w, r)
