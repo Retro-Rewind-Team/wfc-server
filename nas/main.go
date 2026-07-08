@@ -126,7 +126,9 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	// Check for /payload
 	if strings.HasPrefix(r.URL.String(), "/payload") {
 		logging.Info("NAS", aurora.Yellow(r.Method), aurora.Cyan(r.URL), "via", aurora.Cyan(r.Host), "from", aurora.BrightCyan(r.RemoteAddr))
-		if payloadServerAddress != "" {
+		if strings.HasPrefix(r.URL.Path, "/payload/Nugget/v1/") {
+			handleNuggetPayloadRequest(moduleName, w, r)
+		} else if payloadServerAddress != "" {
 			// Forward the request to the payload server
 			forwardPayloadRequest(moduleName, w, r)
 		} else {
