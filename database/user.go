@@ -257,14 +257,7 @@ func GetMKWFriendInfo(pool *pgxpool.Pool, ctx context.Context, profileId uint32)
 	return info
 }
 
-// GetMKWFriendInfoSanitized Returns the b64 representation of a mii with the birthdate, creation date, creator, and sysid removed
-func GetMKWFriendInfoSanitized(pool *pgxpool.Pool, ctx context.Context, profileId uint32) (string, error) {
-	mii := GetMKWFriendInfo(pool, ctx, profileId)
-
-	if mii == "" {
-		return "", ErrFailedToGetMKWFriend
-	}
-
+func sanitizeMKWFriendInfo(mii string, sysID bool) (string, error) {
 	miiBytes, err := base64.StdEncoding.DecodeString(mii)
 
 	if err != nil {
@@ -297,11 +290,27 @@ func GetMKWFriendInfoSanitized(pool *pgxpool.Pool, ctx context.Context, profileI
 	return base64.RawStdEncoding.EncodeToString(miiBytes), nil
 }
 
-func UpdateMKWFriendInfo(pool *pgxpool.Pool, ctx context.Context, profileId uint32, info string) {
-	_, err := pool.Exec(ctx, UpdateMKWFriendInfoQuery, profileId, info)
-	if err != nil {
-		panic(err)
+// GetMKWFriendInfoSanitized Returns the b64 representation of a mii with the birthdate, creation date, creator, and sysid removed
+func GetMKWFriendInfoSanitized(pool *pgxpool.Pool, ctx context.Context, profileId uint32) (string, error) {
+	mii := GetMKWFriendInfo(pool, ctx, profileId)
+
+	if mii == "" {
+		return "", ErrFailedToGetMKWFriend
 	}
+
+	return sanitizeMKWFriendInfo(mii, true)
+}
+
+func UpdateMKWFriendInfo(pool *pgxpool.Pool, ctx context.Context, profileId uint32, info string) error {
+	// We save with sysID for moderator usage. Payload should sanitize
+	// everything here but we re-sanitize just in case.
+	sanitizedInfo, err := sanitizeMKWFriendInfo(info, false)
+	if err != nil {
+		return err
+	}
+
+	_, err = pool.Exec(ctx, UpdateMKWFriendInfoQuery, profileId, sanitizedInfo)
+	return err
 }
 
 // ScanUsers takes a query returning pids and collect the matching users

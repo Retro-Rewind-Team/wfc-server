@@ -293,7 +293,12 @@ func updateRecord(moduleName string, profileId uint32, gameInfo common.GameInfo,
 		}
 
 		// TODO: Validate record data
-		database.UpdateMKWFriendInfo(pool, ctx, profileId, request.Values.RecordFields[0].Value.Value.Value)
+		err := database.UpdateMKWFriendInfo(pool, ctx, profileId, request.Values.RecordFields[0].Value.Value.Value)
+		if err != nil {
+			logging.Error(moduleName, "Failed to update Mario Kart Wii friend info. Error:", aurora.Cyan(err))
+			return &errorResponse
+		}
+
 		logging.Notice(moduleName, "Updated Mario Kart Wii friend info")
 	}
 
