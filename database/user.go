@@ -271,9 +271,15 @@ func GetMKWFriendInfoSanitized(pool *pgxpool.Pool, ctx context.Context, profileI
 		return "", err
 	}
 
-	for i := range 4 {
-		// Zero sysid
-		miiBytes[0x1C+i] = 0
+	// Zero birth day and birth month
+	miiBytes[0x00] &= 0b11000000
+	miiBytes[0x01] &= 0b00011111
+
+	if sysID {
+		for i := range 4 {
+			// Zero sysid
+			miiBytes[0x1C+i] = 0
+		}
 	}
 
 	// Zero creation timestamp
