@@ -86,3 +86,36 @@ func StringInSlice(str string, slice []string) bool {
 	}
 	return false
 }
+
+// WrapString wraps a string into multiple lines based on the maximum length.
+func WrapString(str string, maxLength int) string {
+	if maxLength <= 0 {
+		return str
+	}
+
+	runes := []rune(str)
+	var result []rune
+	currentLineLength := 0
+	lastSpaceIndex := -1
+
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+		result = append(result, r)
+		if r == '\n' {
+			currentLineLength = 0
+			lastSpaceIndex = -1
+		} else {
+			currentLineLength++
+			if r == ' ' {
+				lastSpaceIndex = len(result) - 1
+			}
+			if currentLineLength > maxLength && lastSpaceIndex != -1 {
+				result[lastSpaceIndex] = '\n'
+				currentLineLength = len(result) - 1 - lastSpaceIndex
+				lastSpaceIndex = -1
+			}
+		}
+	}
+
+	return string(result)
+}

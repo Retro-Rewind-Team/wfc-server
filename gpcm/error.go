@@ -241,6 +241,7 @@ func (err GPError) GetMessageTranslate(gameName string, region byte, lang byte, 
 
 			if errMsg != "" {
 				errMsg = fmt.Sprintf(errMsg, wwfcMessage.ErrorCode, ngid, reason)
+				errMsg = common.WrapString(errMsg, 42)
 				errMsgUTF16 := utf16.Encode([]rune(errMsg))
 				errMsgByteArray := common.UTF16ToByteArray(errMsgUTF16)
 				command.OtherValues["wl:errmsg"] = common.Base64DwcEncoding.EncodeToString(errMsgByteArray)
