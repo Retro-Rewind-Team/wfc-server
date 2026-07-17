@@ -34,7 +34,9 @@ CREATE TABLE IF NOT EXISTS public.users (
     unique_nick character varying NOT NULL,
     firstname character varying,
     lastname character varying DEFAULT ''::character varying,
-    mariokartwii_friend_info character varying
+    mariokartwii_friend_info character varying,
+    mariokartwii_vr integer,
+    mariokartwii_br integer
 );
 
 
@@ -50,7 +52,9 @@ ALTER TABLE ONLY public.users
     ADD IF NOT EXISTS ban_tos boolean,
     ADD IF NOT EXISTS open_host boolean DEFAULT false,
     ADD IF NOT EXISTS csnum character varying[],
-    ADD IF NOT EXISTS discord_id character varying;
+    ADD IF NOT EXISTS discord_id character varying,
+    ADD IF NOT EXISTS mariokartwii_vr integer,
+    ADD IF NOT EXISTS mariokartwii_br integer;
 
 --
 -- Change ng_device_id from bigint to bigint[]

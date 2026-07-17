@@ -2,12 +2,47 @@ package gpcm
 
 import (
 	"strconv"
+	"strings"
 	"wwfc/common"
+	"wwfc/database"
 	"wwfc/logging"
 	"wwfc/qr2"
 
 	"github.com/logrusorgru/aurora/v3"
 )
+
+func parseMKWVRBRRecord(value string) (int32, int32, bool) {
+	parts := strings.Split(value, "|")
+	var vr int64 = -1
+	var br int64 = -1
+
+	for _, part := range parts {
+		keyValue := strings.SplitN(part, "=", 2)
+		if len(keyValue) != 2 {
+			return 0, 0, false
+		}
+
+		parsed, err := strconv.ParseInt(keyValue[1], 10, 32)
+		if err != nil || parsed < 1 || parsed > 1000000 {
+			return 0, 0, false
+		}
+
+		switch keyValue[0] {
+		case "vr":
+			vr = parsed
+		case "br":
+			br = parsed
+		default:
+			return 0, 0, false
+		}
+	}
+
+	if vr < 0 || br < 0 {
+		return 0, 0, false
+	}
+
+	return int32(vr), int32(br), true
+}
 
 func (g *GameSpySession) handleWWFCReport(command common.GameSpyCommand) {
 	for key, value := range command.OtherValues {
@@ -87,6 +122,23 @@ func (g *GameSpySession) handleWWFCReport(command common.GameSpyCommand) {
 			}
 
 			qr2.ProcessMKWRaceResult(g.User.ProfileId, value)
+
+		case "wl:mkw_vrbr":
+			if g.GameName != "mariokartwii" {
+				logging.Warn(g.ModuleName, "Ignoring", keyColored, "from wrong game")
+				continue
+			}
+
+			vr, br, ok := parseMKWVRBRRecord(value)
+			if !ok {
+				logging.Error(g.ModuleName, "Invalid", keyColored, "record:", aurora.Cyan(value))
+				continue
+			}
+
+			err := database.UpdateMKWVRBR(pool, ctx, g.User.ProfileId, vr, br)
+			if err != nil {
+				logging.Error(g.ModuleName, "Failed to persist", keyColored, "for", aurora.Cyan(g.User.ProfileId), ":", err)
+			}
 		}
 	}
 }
