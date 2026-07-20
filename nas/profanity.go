@@ -14,15 +14,15 @@ var profanityFileLines []string = nil
 var lastModTime time.Time
 
 var symbolEquivalences = map[rune]rune{
-    '1': 'i',
-    '0': 'o',
-    '5': 's',
-    '4': 'a',
-    '3': 'e',
-    '7': 't',
-    '9': 'g',
-    '2': 'z',
-    '(': 'c',
+	'1': 'i',
+	'0': 'o',
+	'5': 's',
+	'4': 'a',
+	'3': 'e',
+	'7': 't',
+	'9': 'g',
+	'2': 'z',
+	'(': 'c',
 	'©': 'c',
 	'®': 'r',
 	'&': 'a',
@@ -66,7 +66,7 @@ var symbolEquivalences = map[rune]rune{
 
 // This is basically [A-Za-z0-9]+\.[A-Za-z]+/ but with added cases for if the user tries to evade the filter
 var urlPattern = regexp.MustCompile(
-    `(?i)[a-zA-Z0-9-]+(\.|(\s*[\[\(\{]?\s*dot\s*[\]\)\}]?\s*))+[a-zA-Z0-9-]+(\s*/\s*|\s*[\[\(\{]?\s*slash\s*[\]\)\}]?\s*)`,
+	`(?i)[a-zA-Z0-9-]+(\.|(\s*[\[\(\{]?\s*dot\s*[\]\)\}]?\s*))+[a-zA-Z0-9-]+(\s*/\s*|\s*[\[\(\{]?\s*slash\s*[\]\)\}]?\s*)`,
 )
 
 func CacheProfanityFile() error {
