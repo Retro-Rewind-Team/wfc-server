@@ -10,6 +10,11 @@ require (
 )
 
 require (
+	github.com/fsnotify/fsnotify v1.10.1 // indirect
+	golang.org/x/sys v0.33.0 // indirect
+)
+
+require (
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.14.3 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect

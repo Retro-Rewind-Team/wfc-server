@@ -3,15 +3,19 @@ package nas
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
-	"time"
+	"wwfc/logging"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/linkdata/deadlock"
 )
 
 var profanityFilePath = "./profanity.txt"
 var profanityFileLines []string = nil
-var lastModTime time.Time
+var profanityLinesMutex = deadlock.Mutex{}
 
 var symbolEquivalences = map[rune]rune{
 	'1': 'i',
@@ -69,21 +73,82 @@ var urlPattern = regexp.MustCompile(
 	`(?i)[a-zA-Z0-9-]+(\.|(\s*[\[\(\{]?\s*dot\s*[\]\)\}]?\s*))+[a-zA-Z0-9-]+(\s*/\s*|\s*[\[\(\{]?\s*slash\s*[\]\)\}]?\s*)`,
 )
 
-func CacheProfanityFile() error {
-	fileInfo, err := os.Stat(profanityFilePath)
+func InitProfanity() error {
+	err := initWatcher()
+	if err != nil {
+		logging.Error("NAS:Profanity", "Failed to setup watcher:", err)
+	}
+
+	err = readProfanityFile()
 	if err != nil {
 		return err
 	}
 
-	if !fileInfo.ModTime().After(lastModTime) && profanityFileLines != nil {
-		return nil
+	return nil
+}
+
+func initWatcher() error {
+	// This watcher exists for the lifetime of the program. We'll trust the OS
+	// to clean it up since there isn't a good place to close it
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return err
 	}
 
+	go func() {
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				{
+					if !ok {
+						continue
+					}
+
+					if !event.Has(fsnotify.Write) {
+						continue
+					}
+
+					if event.Name != "./profanity.txt" {
+						continue
+					}
+
+					err := readProfanityFile()
+					if err != nil {
+						logging.Error("NAS:Profanity", "Failed to read profanity file:", err)
+						continue
+					}
+
+					logging.Info("NAS:Profanity", "Updated profanity.txt")
+					fmt.Println(profanityFileLines)
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					continue
+				}
+
+				logging.Error("NAS:Profanity", err)
+			}
+		}
+	}()
+
+	// Watch the entire root directory since events may not happen only to
+	// profanity.txt
+	if err = watcher.Add("./"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func readProfanityFile() error {
 	file, err := os.Open(profanityFilePath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
+
+	profanityLinesMutex.Lock()
+	defer profanityLinesMutex.Unlock()
 
 	profanityFileLines = nil
 	scanner := bufio.NewScanner(file)
@@ -101,7 +166,6 @@ func CacheProfanityFile() error {
 		return errors.New("the file '" + profanityFilePath + "' is empty")
 	}
 
-	lastModTime = fileInfo.ModTime()
 	return nil
 }
 
@@ -118,18 +182,14 @@ func normalizeWord(word string) string {
 }
 
 func IsBadWord(word string) (bool, error) {
-	if !isProfanityFileCached() {
-		err := CacheProfanityFile()
-		if err != nil {
-			return false, errors.New("the file '" + profanityFilePath + "' has not been cached")
-		}
-
-	}
-
 	if urlPattern.MatchString(word) {
 		return true, nil
 	}
 	normalizedWord := normalizeWord(word)
+
+	profanityLinesMutex.Lock()
+	defer profanityLinesMutex.Unlock()
+
 	for _, line := range profanityFileLines {
 		if strings.EqualFold(line, normalizedWord) {
 			return true, nil
@@ -137,12 +197,4 @@ func IsBadWord(word string) (bool, error) {
 	}
 
 	return false, nil
-}
-
-func isProfanityFileCached() bool {
-	fileInfo, err := os.Stat(profanityFilePath)
-	if err != nil {
-		return false
-	}
-	return profanityFileLines != nil && !fileInfo.ModTime().After(lastModTime)
 }

@@ -40,7 +40,7 @@ func StartServer(reload bool) {
 		go startHTTPSProxy(config)
 	}
 
-	err := CacheProfanityFile()
+	err := InitProfanity()
 	if err != nil {
 		logging.Info("NAS", err)
 	}
