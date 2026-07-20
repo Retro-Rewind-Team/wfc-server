@@ -23,20 +23,9 @@ func filterServers(moduleName string, servers []map[string]string, queryGame str
 		return []map[string]string{}
 	}
 
-	filtered := filterServersInner(tree, moduleName, servers, queryGame, false)
+	filtered := filterServersInner(tree, moduleName, servers, queryGame, true)
 
-	if len(filtered) != 0 {
-		logging.Info(moduleName, "Matched", aurora.BrightCyan(len(filtered)), "server(s) within vr range.")
-		return filtered
-	} else if len(filtered) == 0 && queryGame == "mariokartwii" {
-		logging.Info(moduleName, "Failed to match any servers within the vr range, retrying without vr.")
-		filtered = filterServersInner(tree, moduleName, servers, queryGame, true)
-
-		if len(filtered) != 0 {
-			logging.Info(moduleName, "Matched", aurora.BrightCyan(len(filtered)), "servers outside of vr range.")
-		}
-	}
-
+	logging.Info(moduleName, "Matched", aurora.BrightCyan(len(filtered)), "server(s).")
 	return filtered
 }
 
