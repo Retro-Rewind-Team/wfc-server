@@ -111,6 +111,9 @@ func StartServer(reload bool) {
 	}
 
 	verifyRoutes(routes)
+
+	// TODO: Unhardcode. Allow routes to have automatically called init functions
+	initPCount()
 }
 
 func verifyRoutes(routes []RouteSpec) {
@@ -343,4 +346,5 @@ func handleUserAction[T any](req T, validSecret bool, f func(T, bool) (*database
 }
 
 func Shutdown() {
+	close(PCountTickerQuit)
 }
