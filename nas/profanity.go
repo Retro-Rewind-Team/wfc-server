@@ -87,10 +87,11 @@ func InitProfanity() error {
 	return nil
 }
 
+var ProfanityWatcher *fsnotify.Watcher
+
 func initWatcher() error {
-	// This watcher exists for the lifetime of the program. We'll trust the OS
-	// to clean it up since there isn't a good place to close it
-	watcher, err := fsnotify.NewWatcher()
+	var err error
+	ProfanityWatcher, err = fsnotify.NewWatcher()
 	if err != nil {
 		return err
 	}
@@ -98,7 +99,7 @@ func initWatcher() error {
 	go func() {
 		for {
 			select {
-			case event, ok := <-watcher.Events:
+			case event, ok := <-ProfanityWatcher.Events:
 				{
 					if !ok {
 						continue
@@ -121,7 +122,7 @@ func initWatcher() error {
 					logging.Info("NAS:Profanity", "Updated profanity.txt")
 					fmt.Println(profanityFileLines)
 				}
-			case err, ok := <-watcher.Errors:
+			case err, ok := <-ProfanityWatcher.Errors:
 				if !ok {
 					continue
 				}
@@ -133,7 +134,7 @@ func initWatcher() error {
 
 	// Watch the entire root directory since events may not happen only to
 	// profanity.txt
-	if err = watcher.Add("./"); err != nil {
+	if err = ProfanityWatcher.Add("./"); err != nil {
 		return err
 	}
 

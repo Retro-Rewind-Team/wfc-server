@@ -67,10 +67,15 @@ func Shutdown() {
 		return
 	}
 
+	err := ProfanityWatcher.Close()
+	if err != nil {
+		logging.Error("NAS", "Failed to close ProfanityWatcher:", err)
+	}
+
 	ctx, release := context.WithTimeout(context.Background(), 10*time.Second)
 	defer release()
 
-	err := server.Shutdown(ctx)
+	err = server.Shutdown(ctx)
 	if err != nil {
 		logging.Error("NAS", "Error on HTTP shutdown:", err)
 	}
