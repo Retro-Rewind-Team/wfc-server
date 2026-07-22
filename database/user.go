@@ -27,6 +27,7 @@ const (
 	GetUserProfileID        = `SELECT profile_id, ng_device_id, email, unique_nick, firstname, lastname, open_host, discord_id, last_ip_address, csnum FROM users WHERE user_id = $1 AND gsbrcd = $2`
 	UpdateUserLastIPAddress = `UPDATE users SET last_ip_address = $2, last_ingamesn = $3 WHERE profile_id = $1`
 	UpdateDiscordID         = `UPDATE users SET discord_id = $2 WHERE profile_id = $1`
+	SearchDiscordID         = `SELECT profile_id FROM users WHERE discord_id = $1`
 	UpdateUserBan           = `UPDATE users SET has_ban = true, ban_issued = $2, ban_expires = $3, ban_reason = $4, ban_reason_hidden = $5, ban_moderator = $6, ban_tos = $7 WHERE profile_id = $1`
 	DisableUserBan          = `UPDATE users SET has_ban = false WHERE profile_id = $1`
 
@@ -76,6 +77,7 @@ var (
 	ErrReservedProfileIDRange = errors.New("profile ID is in reserved range")
 	ErrFailedToGetMKWFriend   = errors.New("failed to get MKW friend info")
 	ErrCountHasNoRows         = errors.New("failed to count active users, result has no rows")
+	ErrNoLinkedProfiles       = errors.New("no profiles found with the associated discord id")
 )
 
 func (user *User) CreateUser(pool *pgxpool.Pool, ctx context.Context) error {
@@ -132,6 +134,33 @@ func (user *User) UpdateDiscordID(pool *pgxpool.Pool, ctx context.Context, disco
 		logging.Error("DB", "Failed to persist DiscordID", aurora.Cyan(discordID), "for profile", aurora.Cyan(user.ProfileId), "error:", aurora.Cyan(err))
 	}
 	return err
+}
+
+func GetUsersByDiscordID(pool *pgxpool.Pool, ctx context.Context, discordID string) ([]uint32, error) {
+	rows, err := pool.Query(ctx, SearchDiscordID, discordID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	pids := []uint32{}
+
+	for rows.Next() {
+		var pid uint32
+		err := rows.Scan(&pid)
+		if err != nil {
+			return nil, err
+		}
+
+		pids = append(pids, pid)
+	}
+
+	if len(pids) == 0 {
+		return nil, ErrNoLinkedProfiles
+	}
+
+	return pids, nil
 }
 
 func GetUniqueUserID() uint64 {
