@@ -34,6 +34,8 @@ const (
 
 	GetMKWFriendInfoQuery    = `SELECT mariokartwii_friend_info FROM users WHERE profile_id = $1`
 	UpdateMKWFriendInfoQuery = `UPDATE users SET mariokartwii_friend_info = $2 WHERE profile_id = $1`
+	GetMKWRawVRBRQuery       = `SELECT mariokartwii_vr, mariokartwii_br FROM users WHERE profile_id = $1`
+	UpdateMKWVRBRQuery       = `UPDATE users SET mariokartwii_vr = $2, mariokartwii_br = $3 WHERE profile_id = $1`
 	CountTotalUsersQuery     = `SELECT COUNT(DISTINCT csnum) FROM users`
 )
 
@@ -71,6 +73,8 @@ type User struct {
 	BanReasonHidden string
 	BanIssued       *time.Time
 	BanExpires      *time.Time
+	VR              *int32
+	BR              *int32
 }
 
 var (
@@ -347,6 +351,35 @@ func UpdateMKWFriendInfo(pool *pgxpool.Pool, ctx context.Context, profileId uint
 	}
 
 	_, err = pool.Exec(ctx, UpdateMKWFriendInfoQuery, profileId, sanitizedInfo)
+	return err
+}
+
+// GetMKWRawVRBR returns the stored ratings without substituting defaults.
+// A nil rating means that the player has not reported that value yet.
+func GetMKWRawVRBR(pool *pgxpool.Pool, ctx context.Context, profileId uint32) (*int32, *int32, error) {
+	var vr *int32
+	var br *int32
+
+	err := pool.QueryRow(ctx, GetMKWRawVRBRQuery, profileId).Scan(&vr, &br)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return vr, br, nil
+}
+
+// GetMKWVRBR returns ratings only when both values have been reported.
+func GetMKWVRBR(pool *pgxpool.Pool, ctx context.Context, profileId uint32) (int32, int32, bool) {
+	vr, br, err := GetMKWRawVRBR(pool, ctx, profileId)
+	if err != nil || vr == nil || br == nil {
+		return 0, 0, false
+	}
+
+	return *vr, *br, true
+}
+
+func UpdateMKWVRBR(pool *pgxpool.Pool, ctx context.Context, profileId uint32, vr int32, br int32) error {
+	_, err := pool.Exec(ctx, UpdateMKWVRBRQuery, profileId, vr, br)
 	return err
 }
 

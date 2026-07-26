@@ -108,6 +108,7 @@ func StartServer(reload bool) {
 		RemoveHashRoute,
 		SelfRoute,
 		SetHashRoute,
+		SetMKWRatingRoute,
 		UnbanRoute,
 	}
 
