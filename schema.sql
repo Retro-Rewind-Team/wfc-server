@@ -153,8 +153,18 @@ ALTER TABLE ONLY public.users ALTER COLUMN profile_id SET DEFAULT nextval('publi
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: wiilink
 --
 
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_pkey PRIMARY KEY (profile_id);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'public.users'::regclass
+            AND contype = 'p'
+    ) THEN
+        ALTER TABLE ONLY public.users
+            ADD CONSTRAINT users_pkey PRIMARY KEY (profile_id);
+    END IF;
+END $$;
 
 
 CREATE TABLE IF NOT EXISTS public.hashes (
