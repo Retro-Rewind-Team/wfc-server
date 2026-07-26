@@ -36,7 +36,11 @@ CREATE TABLE IF NOT EXISTS public.users (
     lastname character varying DEFAULT ''::character varying,
     mariokartwii_friend_info character varying,
     mariokartwii_vr integer,
-    mariokartwii_br integer
+    mariokartwii_br integer,
+    mariokartwii_mmr integer,
+    mariokartwii_mmr_rt integer,
+    mariokartwii_mmr_ct integer,
+    mariokartwii_mmr_vanilla integer
 );
 
 
@@ -54,7 +58,19 @@ ALTER TABLE ONLY public.users
     ADD IF NOT EXISTS csnum character varying[],
     ADD IF NOT EXISTS discord_id character varying,
     ADD IF NOT EXISTS mariokartwii_vr integer,
-    ADD IF NOT EXISTS mariokartwii_br integer;
+    ADD IF NOT EXISTS mariokartwii_br integer,
+    ADD IF NOT EXISTS mariokartwii_mmr integer;
+
+ALTER TABLE ONLY public.users
+    ADD IF NOT EXISTS mariokartwii_mmr_rt integer,
+    ADD IF NOT EXISTS mariokartwii_mmr_ct integer,
+    ADD IF NOT EXISTS mariokartwii_mmr_vanilla integer;
+
+UPDATE public.users
+SET mariokartwii_mmr_rt = COALESCE(mariokartwii_mmr_rt, mariokartwii_mmr),
+    mariokartwii_mmr_ct = COALESCE(mariokartwii_mmr_ct, mariokartwii_mmr),
+    mariokartwii_mmr_vanilla = COALESCE(mariokartwii_mmr_vanilla, mariokartwii_mmr)
+WHERE mariokartwii_mmr IS NOT NULL;
 
 --
 -- Change ng_device_id from bigint to bigint[]
