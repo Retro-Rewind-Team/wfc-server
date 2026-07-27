@@ -130,13 +130,7 @@ func handleSetMKWRatingImpl(req SetMKWRatingRequest) (SetMKWRatingResponse, int,
 		return SetMKWRatingResponse{}, http.StatusInternalServerError, ErrUserQueryTransaction
 	}
 
-	kickReason := fmt.Sprintf("%s has been updated to %d.", mkwRatingLabel(ratingType), req.Value)
-	if ratingType == "vr" || ratingType == "br" {
-		kickReason = "Your VR/BR was updated."
-	}
-	if reason := strings.TrimSpace(req.Reason); reason != "" {
-		kickReason += " - " + reason
-	}
+	kickReason := fmt.Sprintf("%s has been changed to %d.", mkwRatingLabel(ratingType), req.Value)
 
 	if err := gpcm.KickPlayer(req.ProfileID, kickReason, gpcm.WWFCMsgKickedCustom); err != nil {
 		return SetMKWRatingResponse{}, http.StatusInternalServerError, err
