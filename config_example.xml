@@ -60,6 +60,9 @@
     <!-- Require hashes to be submitted to log in -->
     <enableHashCheck>true</enableHashCheck>
 
+    <!-- Number of seconds between refreshing total player count -->
+    <pcountRefreshInterval>600</pcountRefreshInterval>
+
     <!-- Database Credentials -->
     <username>username</username>
     <password>password</password>

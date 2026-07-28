@@ -50,7 +50,8 @@ type Config struct {
 
 	AllowMultipleCsnums string `xml:"allowMultipleCsnums"`
 
-	EnableHashCheck bool `xml:"enableHashCheck"`
+	EnableHashCheck       bool `xml:"enableHashCheck"`
+	PCountRefreshInterval int  `xml:"pcountRefreshInterval"`
 
 	ServerName string `xml:"serverName,omitempty"`
 }
@@ -78,6 +79,7 @@ func GetConfig() Config {
 	config.AllowMultipleDeviceIDs = "never"
 	config.AllowConnectWithoutDeviceID = false
 	config.ServerName = "WiiLink"
+	config.PCountRefreshInterval = 60
 
 	err = xml.Unmarshal(data, &config)
 	if err != nil {

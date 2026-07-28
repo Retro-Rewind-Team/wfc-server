@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"time"
+	"wwfc/common"
 	"wwfc/database"
 	"wwfc/logging"
 
@@ -48,7 +49,9 @@ func initPCount() {
 		logging.Error("API:PCount", "Failed to count total users:", err)
 	}
 
-	ticker := time.NewTicker(60 * time.Second)
+	config := common.GetConfig()
+
+	ticker := time.NewTicker(time.Duration(config.PCountRefreshInterval) * time.Second)
 
 	go func() {
 
