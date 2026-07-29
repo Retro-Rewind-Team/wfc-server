@@ -33,7 +33,7 @@ func HandleMKWRatings(w http.ResponseWriter, r *http.Request) {
 	vr, br, found := database.GetMKWVRBR(pool, ctx, profileID)
 	mmrRT, mmrCT, mmrVanilla, mmrFound := database.GetMKWMMRs(pool, ctx, profileID)
 	response := MKWRatingResponse{}
-	if found || mmrFound {
+	if found {
 		response.Found = 1
 	}
 	if found {
