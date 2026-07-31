@@ -20,9 +20,9 @@ var ClearRoute = MakeRouteSpec[ClearRequest, UserActionResponse](
 )
 
 func handleClearImpl(req ClearRequest, _ bool) (*database.User, int, error) {
-	user, success := database.ClearProfile(pool, ctx, req.ProfileID)
+	user, err := database.ClearProfile(pool, ctx, req.ProfileID)
 
-	if !success {
+	if err != nil {
 		return nil, http.StatusInternalServerError, ErrTransaction
 	}
 
