@@ -148,7 +148,7 @@ func kickPlayer(profileID uint32, reason string, message WWFCErrorMessage) error
 			ip, _ = common.IPFormatToInt(user.LastIPAddress)
 		}
 
-		kickInfo = append(kickInfo, qr2.PIDIPPair{PID: user.ProfileId, IP: uint32(ip)})
+		kickInfo = append(kickInfo, qr2.PIDIPPair{PID: profileID, IP: uint32(ip)})
 	}
 
 	// After 3 seconds, send kick order to all players
