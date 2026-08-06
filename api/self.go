@@ -31,8 +31,9 @@ var SelfRoute = MakeRouteSpec[SelfRequest, UserActionResponse](
 )
 
 var (
-	ErrUserNotFoundOnline = errors.New("no linked profile was not found online")
-	ErrNotHostingAnyRoom  = errors.New("no linked profiles are hosting any rooms")
+	ErrUserNotFoundOnline = errors.New("no linked profile was found online")
+	ErrNotHostingARoom    = errors.New("no linked profile is hosting a room")
+	ErrTargetNotInRoom    = errors.New("the target user is not in the current froom")
 )
 
 func handleSelfImpl(req SelfRequest, _ bool) (*database.User, int, error) {
@@ -41,18 +42,17 @@ func handleSelfImpl(req SelfRequest, _ bool) (*database.User, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	groups := qr2.GetGroups(nil, nil, false)
-
 	switch req.Command {
 	case "kick":
-		return handleSelfKick(pids, groups)
+		return handleSelfKick(pids)
 	case "kick_froom":
-		return handleFroomKick(pids, groups, req.ProfileID)
+		return handleFroomKick(pids, req.ProfileID)
 	default:
 		return nil, http.StatusBadRequest, fmt.Errorf("unknown command '%s'", req.Command)
 	}
 }
-func handleSelfKick(pids []uint32, groups []qr2.GroupInfo) (*database.User, int, error) {
+func handleSelfKick(pids []uint32) (*database.User, int, error) {
+	groups := qr2.GetGroups(nil, nil, false)
 	// Attempt to find a matching user that is online. Assume only one user is
 	// online at a time which is linked to a specific profile
 	for _, group := range groups {
@@ -105,11 +105,17 @@ func findHostForPids(pids []uint32, groups []qr2.GroupInfo) (qr2.GroupInfo, erro
 		}
 	}
 
-	return qr2.GroupInfo{}, ErrNotHostingAnyRoom
+	return qr2.GroupInfo{}, ErrNotHostingARoom
 }
 
-func handleFroomKick(pids []uint32, groups []qr2.GroupInfo, target uint32) (*database.User, int, error) {
-	froom, err := findHostForPids(pids, groups)
+func handleFroomKick(linkedPids []uint32, target uint32) (*database.User, int, error) {
+	if target == 0 {
+		return nil, http.StatusBadRequest, ErrPIDMissing
+	}
+
+	groups := qr2.GetGroups(nil, nil, false)
+
+	froom, err := findHostForPids(linkedPids, groups)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
@@ -131,5 +137,5 @@ func handleFroomKick(pids []uint32, groups []qr2.GroupInfo, target uint32) (*dat
 		}
 	}
 
-	return nil, http.StatusInternalServerError, ErrUserNotFoundOnline
+	return nil, http.StatusInternalServerError, ErrTargetNotInRoom
 }
