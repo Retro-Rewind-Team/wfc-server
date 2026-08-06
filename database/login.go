@@ -19,8 +19,8 @@ const (
 		WHERE has_ban = true
 			AND (profile_id = $2
 				OR (ng_device_id && (SELECT array_agg(the_id) FROM UNNEST($1::bigint[]) AS x(the_id) WHERE x.the_id != 67349608))
-				OR last_ip_address = $3
-				OR ($3 != '' AND last_ip_address = $4)
+				OR ($3 != '' AND last_ip_address = $3)
+				OR ($4 != '' AND last_ip_address = $4)
 				OR $6 && csnum)
 			AND (ban_expires IS NULL OR ban_expires > $5)
 			ORDER BY ban_tos DESC LIMIT 1`
