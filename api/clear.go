@@ -8,6 +8,7 @@ import (
 type ClearRequest struct {
 	Secret    string `json:"secret"`
 	ProfileID uint32 `json:"pid"`
+	Full      bool   `json:"full"`
 }
 
 var ClearRoute = MakeRouteSpec[ClearRequest, UserActionResponse](
@@ -20,7 +21,7 @@ var ClearRoute = MakeRouteSpec[ClearRequest, UserActionResponse](
 )
 
 func handleClearImpl(req ClearRequest, _ bool) (*database.User, int, error) {
-	user, err := database.ClearProfile(pool, ctx, req.ProfileID)
+	user, err := database.ClearProfile(pool, ctx, req.ProfileID, req.Full)
 
 	if err != nil {
 		return nil, http.StatusInternalServerError, ErrTransaction

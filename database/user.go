@@ -21,6 +21,7 @@ const (
 	UpdateUserCsnum         = `UPDATE users SET csnum = $2 WHERE profile_id = $1`
 	GetUser                 = `SELECT user_id, gsbrcd, ng_device_id, email, unique_nick, firstname, lastname, has_ban, ban_reason, open_host, last_ingamesn, last_ip_address, csnum, discord_id, ban_moderator, ban_reason_hidden, ban_issued, ban_expires FROM users WHERE profile_id = $1`
 	ClearProfileQuery       = `DELETE FROM users WHERE profile_id = $1`
+	ClearPartialQuery       = `UPDATE users SET last_ip_address = '', ng_device_id = '{}', csnum = '{}' WHERE profile_id = $1`
 	DoesUserExist           = `SELECT EXISTS(SELECT 1 FROM users WHERE user_id = $1 AND gsbrcd = $2)`
 	IsProfileIDInUse        = `SELECT EXISTS(SELECT 1 FROM users WHERE profile_id = $1)`
 	DeleteUserSession       = `DELETE FROM sessions WHERE profile_id = $1`
@@ -253,13 +254,17 @@ func GetProfile(pool *pgxpool.Pool, ctx context.Context, profileId uint32) (User
 	return user, nil
 }
 
-func ClearProfile(pool *pgxpool.Pool, ctx context.Context, profileId uint32) (User, error) {
+func ClearProfile(pool *pgxpool.Pool, ctx context.Context, profileId uint32, full bool) (User, error) {
 	user, err := GetProfile(pool, ctx, profileId)
 	if err != nil {
 		return User{}, err
 	}
 
-	_, err = pool.Exec(ctx, ClearProfileQuery, profileId)
+	if full {
+		_, err = pool.Exec(ctx, ClearProfileQuery, profileId)
+	} else {
+		_, err = pool.Exec(ctx, ClearPartialQuery, profileId)
+	}
 
 	if err != nil {
 		return User{}, err
