@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"math/rand"
+	"strings"
 	"unicode/utf16"
 )
 
@@ -85,4 +86,37 @@ func StringInSlice(str string, slice []string) bool {
 		}
 	}
 	return false
+}
+
+// Wraps string by spaces. Assumes that no individual word is more than 40
+// characters.
+func WrapString(str string, maxLen uint) string {
+	if len(str) == 0 {
+		return str
+	}
+
+	str = strings.Replace(str, "\n", "", 0)
+	split := strings.Split(str, " ")
+
+	sb := strings.Builder{}
+	var cline uint = 0
+
+	for _, word := range split {
+		wlen := uint(len(word))
+		if cline+wlen+1 <= maxLen {
+			if cline != 0 {
+				sb.WriteRune(' ')
+			}
+
+			sb.WriteString(word)
+			cline += wlen + 1
+			continue
+		}
+
+		sb.WriteRune('\n')
+		sb.WriteString(word)
+		cline = wlen
+	}
+
+	return sb.String()
 }

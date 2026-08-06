@@ -217,7 +217,7 @@ func (err GPError) GetMessageTranslate(gameName string, region byte, lang byte, 
 	if err.Fatal && err.WWFCMessage.ErrorCode != 0 {
 		switch gameName {
 		case "mariokartwii":
-			reason := err.Reason
+			reason := common.WrapString(err.Reason, 40)
 			wwfcMessage := err.WWFCMessage
 
 			if reason == "" {
