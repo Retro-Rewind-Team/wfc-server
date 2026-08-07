@@ -34,7 +34,68 @@ const (
 
 	GetMKWFriendInfoQuery    = `SELECT mariokartwii_friend_info FROM users WHERE profile_id = $1`
 	UpdateMKWFriendInfoQuery = `UPDATE users SET mariokartwii_friend_info = $2 WHERE profile_id = $1`
-	CountTotalUsersQuery     = `SELECT COUNT(DISTINCT csnum) FROM users`
+	GetMKWRawVRBRQuery       = `SELECT mariokartwii_vr, mariokartwii_br FROM users WHERE profile_id = $1`
+	UpdateMKWVRBRQuery       = `UPDATE users SET mariokartwii_vr = $2, mariokartwii_br = $3 WHERE profile_id = $1`
+	GetMKWMMRQuery           = `
+		SELECT
+			COALESCE(s.mmr_rt, 1000),
+			COALESCE(s.mmr_ct, 1000),
+			COALESCE(s.mmr_vanilla, 1000),
+			true
+		FROM public.users AS u
+		LEFT JOIN public.mkw_mmr_seasons AS s
+			ON s.profile_id = u.profile_id
+			AND s.season = COALESCE(
+				(SELECT current_season FROM public.mkw_mmr_settings WHERE id = true),
+				1
+			)
+		WHERE u.profile_id = $1`
+	UpdateMKWMMRQuery = `
+		INSERT INTO public.mkw_mmr_seasons (profile_id, season, mmr_rt, mmr_ct, mmr_vanilla)
+		SELECT
+			$1,
+			COALESCE((SELECT current_season FROM public.mkw_mmr_settings WHERE id = true), 1),
+			$2,
+			$2,
+			$2
+		WHERE EXISTS (SELECT 1 FROM public.users WHERE profile_id = $1)
+		ON CONFLICT (profile_id, season) DO UPDATE SET
+			mmr_rt = EXCLUDED.mmr_rt,
+			mmr_ct = EXCLUDED.mmr_ct,
+			mmr_vanilla = EXCLUDED.mmr_vanilla`
+	UpdateMKWMMRRTQuery = `
+		INSERT INTO public.mkw_mmr_seasons (profile_id, season, mmr_rt, mmr_ct, mmr_vanilla)
+		SELECT
+			$1,
+			COALESCE((SELECT current_season FROM public.mkw_mmr_settings WHERE id = true), 1),
+			$2,
+			1000,
+			1000
+		WHERE EXISTS (SELECT 1 FROM public.users WHERE profile_id = $1)
+		ON CONFLICT (profile_id, season) DO UPDATE SET mmr_rt = EXCLUDED.mmr_rt`
+	UpdateMKWMMRCTQuery = `
+		INSERT INTO public.mkw_mmr_seasons (profile_id, season, mmr_rt, mmr_ct, mmr_vanilla)
+		SELECT
+			$1,
+			COALESCE((SELECT current_season FROM public.mkw_mmr_settings WHERE id = true), 1),
+			1000,
+			$2,
+			1000
+		WHERE EXISTS (SELECT 1 FROM public.users WHERE profile_id = $1)
+		ON CONFLICT (profile_id, season) DO UPDATE SET mmr_ct = EXCLUDED.mmr_ct`
+	UpdateMKWMMRVanillaQuery = `
+		INSERT INTO public.mkw_mmr_seasons (profile_id, season, mmr_rt, mmr_ct, mmr_vanilla)
+		SELECT
+			$1,
+			COALESCE((SELECT current_season FROM public.mkw_mmr_settings WHERE id = true), 1),
+			1000,
+			1000,
+			$2
+		WHERE EXISTS (SELECT 1 FROM public.users WHERE profile_id = $1)
+		ON CONFLICT (profile_id, season) DO UPDATE SET mmr_vanilla = EXCLUDED.mmr_vanilla`
+	GetMKWMMRSeasonQuery    = `SELECT current_season FROM public.mkw_mmr_settings WHERE id = true`
+	UpdateMKWMMRSeasonQuery = `UPDATE public.mkw_mmr_settings SET current_season = $1 WHERE id = true`
+	CountTotalUsersQuery    = `SELECT COUNT(DISTINCT csnum) FROM users`
 )
 
 type LinkStage byte
@@ -71,14 +132,18 @@ type User struct {
 	BanReasonHidden string
 	BanIssued       *time.Time
 	BanExpires      *time.Time
+	VR              *int32
+	BR              *int32
 }
 
 var (
-	ErrProfileIDInUse         = errors.New("profile ID is already in use")
-	ErrReservedProfileIDRange = errors.New("profile ID is in reserved range")
-	ErrFailedToGetMKWFriend   = errors.New("failed to get MKW friend info")
-	ErrCountHasNoRows         = errors.New("failed to count active users, result has no rows")
-	ErrNoLinkedProfiles       = errors.New("no profiles found with the associated discord id")
+	ErrProfileIDInUse           = errors.New("profile ID is already in use")
+	ErrReservedProfileIDRange   = errors.New("profile ID is in reserved range")
+	ErrFailedToGetMKWFriend     = errors.New("failed to get MKW friend info")
+	ErrCountHasNoRows           = errors.New("failed to count active users, result has no rows")
+	ErrNoLinkedProfiles         = errors.New("no profiles found with the associated discord id")
+	ErrMKWRatingProfileNotFound = errors.New("Mario Kart Wii rating profile was not found")
+	ErrInvalidMKWMMRMode        = errors.New("invalid Mario Kart Wii MMR mode")
 )
 
 func (user *User) CreateUser(pool *pgxpool.Pool, ctx context.Context) error {
@@ -348,6 +413,105 @@ func UpdateMKWFriendInfo(pool *pgxpool.Pool, ctx context.Context, profileId uint
 
 	_, err = pool.Exec(ctx, UpdateMKWFriendInfoQuery, profileId, sanitizedInfo)
 	return err
+}
+
+// GetMKWRawVRBR returns the stored ratings without substituting defaults.
+// A nil rating means that the player has not reported that value yet.
+func GetMKWRawVRBR(pool *pgxpool.Pool, ctx context.Context, profileId uint32) (*int32, *int32, error) {
+	var vr *int32
+	var br *int32
+
+	err := pool.QueryRow(ctx, GetMKWRawVRBRQuery, profileId).Scan(&vr, &br)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return vr, br, nil
+}
+
+// GetMKWVRBR returns ratings only when both values have been reported.
+func GetMKWVRBR(pool *pgxpool.Pool, ctx context.Context, profileId uint32) (int32, int32, bool) {
+	vr, br, err := GetMKWRawVRBR(pool, ctx, profileId)
+	if err != nil || vr == nil || br == nil {
+		return 0, 0, false
+	}
+
+	return *vr, *br, true
+}
+
+func UpdateMKWVRBR(pool *pgxpool.Pool, ctx context.Context, profileId uint32, vr int32, br int32) error {
+	result, err := pool.Exec(ctx, UpdateMKWVRBRQuery, profileId, vr, br)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() != 1 {
+		return ErrMKWRatingProfileNotFound
+	}
+	return nil
+}
+
+// GetMKWMMRs returns the current-season ratings for all three competitive
+// modes. Existing profiles receive the default 1000 rating until a value is
+// recorded for the active season.
+func GetMKWMMRs(pool *pgxpool.Pool, ctx context.Context, profileId uint32) (int32, int32, int32, bool) {
+	var rt int32
+	var ct int32
+	var vanilla int32
+	var found bool
+
+	err := pool.QueryRow(ctx, GetMKWMMRQuery, profileId).Scan(&rt, &ct, &vanilla, &found)
+	if err != nil {
+		return 0, 0, 0, false
+	}
+
+	return rt, ct, vanilla, found
+}
+
+func GetMKWMMRSeason(pool *pgxpool.Pool, ctx context.Context) (int32, error) {
+	var season int32
+	err := pool.QueryRow(ctx, GetMKWMMRSeasonQuery).Scan(&season)
+	return season, err
+}
+
+func UpdateMKWMMRSeason(pool *pgxpool.Pool, ctx context.Context, season int32) error {
+	_, err := pool.Exec(ctx, UpdateMKWMMRSeasonQuery, season)
+	return err
+}
+
+func GetMKWMMR(pool *pgxpool.Pool, ctx context.Context, profileId uint32) (int32, bool) {
+	rt, _, _, found := GetMKWMMRs(pool, ctx, profileId)
+	return rt, found
+}
+
+func updateMKWMMRQuery(pool *pgxpool.Pool, ctx context.Context, query string, profileId uint32, mmr int32) error {
+	result, err := pool.Exec(ctx, query, profileId, mmr)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() != 1 {
+		return ErrMKWRatingProfileNotFound
+	}
+	return nil
+}
+
+func UpdateMKWMMR(pool *pgxpool.Pool, ctx context.Context, profileId uint32, mmr int32) error {
+	return updateMKWMMRQuery(pool, ctx, UpdateMKWMMRQuery, profileId, mmr)
+}
+
+func UpdateMKWMMRMode(pool *pgxpool.Pool, ctx context.Context, profileId uint32, mode string, mmr int32) error {
+	var query string
+	switch mode {
+	case "rt":
+		query = UpdateMKWMMRRTQuery
+	case "ct":
+		query = UpdateMKWMMRCTQuery
+	case "vanilla":
+		query = UpdateMKWMMRVanillaQuery
+	default:
+		return ErrInvalidMKWMMRMode
+	}
+
+	return updateMKWMMRQuery(pool, ctx, query, profileId, mmr)
 }
 
 // ScanUsers takes a query returning pids and collect the matching users
