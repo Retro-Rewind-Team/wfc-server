@@ -2,12 +2,14 @@ package database
 
 import (
 	"context"
+	"fmt"
+	"wwfc/logging"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 func UpdateTables(pool *pgxpool.Pool, ctx context.Context) {
-	pool.Exec(ctx, `
+	runMigration(pool, ctx, "public.users", `
 
 	ALTER TABLE ONLY public.users
 		ADD IF NOT EXISTS last_ip_address character varying DEFAULT ''::character varying,
@@ -24,23 +26,34 @@ func UpdateTables(pool *pgxpool.Pool, ctx context.Context) {
 		ADD IF NOT EXISTS discord_id character varying;
 	`)
 
-	pool.Exec(ctx, `
+	runMigration(pool, ctx, "ng_device_id bigint", `
 
-	DO $$ 
+	DO $$
 	BEGIN
-    	IF (SELECT data_type FROM information_schema.columns WHERE table_name='users' AND column_name='ng_device_id') != 'ARRAY' THEN
-        	ALTER TABLE public.users
-            	ALTER COLUMN ng_device_id TYPE bigint[] using array[ng_device_id];
-    	END IF;
+		IF (SELECT data_type FROM information_schema.columns WHERE table_name='users' AND column_name='ng_device_id') != 'ARRAY' THEN
+			ALTER TABLE public.users
+				ALTER COLUMN ng_device_id TYPE bigint[] using array[ng_device_id];
+		END IF;
 	END $$;
 
 	`)
 
-	pool.Exec(ctx, `
+	runMigration(pool, ctx, "public.mario_kart_wii_sake", `
 
 	ALTER TABLE ONLY public.mario_kart_wii_sake
-        ADD IF NOT EXISTS id serial PRIMARY KEY,
+		ADD IF NOT EXISTS id serial PRIMARY KEY,
 		ADD IF NOT EXISTS upload_time timestamp without time zone;
 	
 	`)
+
+func runMigration(pool *pgxpool.Pool, ctx context.Context, migration string, sql string) {
+	_, err := pool.Exec(ctx, sql)
+	handleError(migration, err)
+}
+
+func handleError(migration string, err error) {
+	if err != nil {
+		module := fmt.Sprintf("DATABASE:%s", migration)
+		logging.Error(module, "Error applying migration:", err)
+	}
 }
