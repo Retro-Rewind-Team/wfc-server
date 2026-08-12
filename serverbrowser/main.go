@@ -89,6 +89,12 @@ func CloseConnection(index uint64) {
 func HandlePacket(index uint64, data []byte, address string) {
 	moduleName := "SB:" + address
 
+	defer func() {
+		if r := recover(); r != nil {
+			logging.Error(moduleName, "Panic:", r)
+		}
+	}()
+
 	mutex.RLock()
 	buffer := connBuffers[index]
 	mutex.RUnlock()
