@@ -87,13 +87,13 @@ func StartServer(reload bool) {
 
 			buf := make([]byte, 1024)
 			n, addr, err := conn.ReadFrom(buf)
-			if err != nil || n == 0 {
+			if err != nil || n < 5 {
 				continue
 			}
 
 			waitGroup.Add(1)
 
-			go handleConnection(conn, *addr.(*net.UDPAddr), buf)
+			go handleConnection(conn, *addr.(*net.UDPAddr), buf, n)
 		}
 	}()
 }
@@ -128,7 +128,7 @@ func Shutdown() {
 	logging.Notice("QR2", "Saved", aurora.Cyan(len(groups)), "groups")
 }
 
-func handleConnection(conn net.PacketConn, addr net.UDPAddr, buffer []byte) {
+func handleConnection(conn net.PacketConn, addr net.UDPAddr, buffer []byte, n int) {
 	defer waitGroup.Done()
 
 	packetType := buffer[0]
@@ -213,6 +213,19 @@ func handleConnection(conn net.PacketConn, addr net.UDPAddr, buffer []byte) {
 		return
 
 	case AvailableRequest:
+		// Expect a null terminated string
+		if buffer[n-1] != 0 {
+			return
+		}
+
+		// Only respond if the game name provided in the packet is valid
+		gameName := string(buffer[5 : n-1])
+		gameInfo := common.GetGameInfoByName(gameName)
+
+		if gameInfo == nil {
+			return
+		}
+
 		logging.Info("QR2", "Command:", aurora.Yellow("AVAILABLE"))
 		conn.WriteTo(createResponseHeader(AvailableRequest, 0), &addr)
 		return
