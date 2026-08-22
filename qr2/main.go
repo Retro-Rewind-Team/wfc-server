@@ -132,6 +132,12 @@ func handleConnection(conn net.PacketConn, addr net.UDPAddr, buffer []byte) {
 	defer waitGroup.Done()
 
 	packetType := buffer[0]
+
+	// Invalid packet type, drop the connection immediately
+	if packetType > ClientKickPeerOrder {
+		return
+	}
+
 	moduleName := "QR2:" + addr.String()
 
 	var session *Session
