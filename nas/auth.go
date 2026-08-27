@@ -171,6 +171,12 @@ func handleAuthRequest(moduleName string, w http.ResponseWriter, r *http.Request
 	// DWC treats the response like a null terminated string
 	response = append(response, 0x00)
 
+	// Echo X-Forwarded-For back to the requester
+	source, ok := r.Header["X-Forwarded-For"]
+	if ok && len(source) != 0 {
+		w.Header().Set("X-Forwarded-For", source[0])
+	}
+
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Content-Length", strconv.Itoa(len(response)))
 	w.Write(response)
