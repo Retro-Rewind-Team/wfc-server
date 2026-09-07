@@ -271,8 +271,8 @@ func SendClientMessage(senderIP string, destSearchID uint64, message []byte) {
 		case &timeWaker:
 			timeOutCount++
 
-			// Enforce a 10 second timeout
-			if timeOutCount <= 10 {
+			// Enforce a 20 second timeout
+			if timeOutCount <= 20 {
 				break
 			}
 
