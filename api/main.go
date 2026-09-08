@@ -100,6 +100,7 @@ func StartServer(reload bool) {
 		KickRoute,
 		LinkRoute,
 		MiiRoute,
+		MKWStatsRoute,
 		MotdRoute,
 		NewPlayersRoute,
 		PCountRoute,
