@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 	"wwfc/logging"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/logrusorgru/aurora/v3"
 )
@@ -35,6 +38,20 @@ const (
 	GetMKWFriendInfoQuery    = `SELECT mariokartwii_friend_info FROM users WHERE profile_id = $1`
 	UpdateMKWFriendInfoQuery = `UPDATE users SET mariokartwii_friend_info = $2 WHERE profile_id = $1`
 	CountTotalUsersQuery     = `SELECT COUNT(DISTINCT csnum) FROM users`
+
+	GetUserVRBR          = `SELECT mariokartwii_vr, mariokartwii_br FROM users WHERE profile_id = $1`
+	UpdateUserVRBR       = `UPDATE users SET mariokartwii_vr = $2, mariokartwii_br = $3 WHERE profile_id = $1`
+	UpdateUserVRBRSingle = `UPDATE users SET %s = $2 WHERE profile_id = $1`
+	GetUserMMR           = `SELECT
+		retro_tracks, custom_tracks, vanilla
+		FROM mkw_mmr
+		WHERE season = $1 AND profile_id = $2`
+	// fmt string to specify the mode (twice)
+	UpdateUserMMR = `INSERT
+		INTO mkw_mmr (season, profile_id, %s)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (season, profile_id)
+		DO UPDATE SET %s = $3`
 )
 
 type LinkStage byte
@@ -45,6 +62,27 @@ const (
 	LS_FRIENDED
 	LS_FINISHED
 )
+
+type MKWRatingType byte
+
+const (
+	RT_VR MKWRatingType = iota
+	RT_BR
+	RT_MMR_RETRO_TRACKS
+	RT_MMR_CUSTOM_TRACKS
+	RT_MMR_VANILLA
+	RT_LEN
+)
+
+type UserMKWRating struct {
+	VR  uint32
+	BR  uint32
+	MMR struct {
+		RetroTracks  uint32
+		CustomTracks uint32
+		Vanilla      uint32
+	}
+}
 
 type User struct {
 	ProfileId          uint32
@@ -74,11 +112,14 @@ type User struct {
 }
 
 var (
-	ErrProfileIDInUse         = errors.New("profile ID is already in use")
-	ErrReservedProfileIDRange = errors.New("profile ID is in reserved range")
-	ErrFailedToGetMKWFriend   = errors.New("failed to get MKW friend info")
-	ErrCountHasNoRows         = errors.New("failed to count active users, result has no rows")
-	ErrNoLinkedProfiles       = errors.New("no profiles found with the associated discord id")
+	ErrProfileIDInUse          = errors.New("profile ID is already in use")
+	ErrReservedProfileIDRange  = errors.New("profile ID is in reserved range")
+	ErrFailedToGetMKWFriend    = errors.New("failed to get MKW friend info")
+	ErrCountHasNoRows          = errors.New("failed to count active users, result has no rows")
+	ErrNoLinkedProfiles        = errors.New("no profiles found with the associated discord id")
+	ErrInvalidMKWRatingValue   = errors.New("mkw rating is outside of the min/max bounds")
+	ErrInvalidMKWRatingType    = errors.New("invalid mkw rating type")
+	ErrInvalidMKWRatingTypeStr = errors.New("invalid mkw rating type string")
 )
 
 func (user *User) CreateUser(pool *pgxpool.Pool, ctx context.Context) error {
@@ -210,7 +251,27 @@ func GetProfile(pool *pgxpool.Pool, ctx context.Context, profileId uint32) (User
 	var banHiddenReason *string
 	var discordID *string
 
-	err := row.Scan(&user.UserId, &user.GsbrCode, &user.NgDeviceId, &user.Email, &user.UniqueNick, &firstName, &lastName, &user.Restricted, &banReason, &user.OpenHost, &lastInGameSn, &lastIPAddress, &user.Csnum, &discordID, &banModerator, &banHiddenReason, &user.BanIssued, &user.BanExpires)
+	err := row.Scan(&user.UserId,
+		&user.GsbrCode,
+		&user.NgDeviceId,
+		&user.Email,
+		&user.UniqueNick,
+		&firstName,
+		&lastName,
+		&user.Restricted,
+		&banReason,
+		&user.OpenHost,
+		&lastInGameSn,
+		&lastIPAddress,
+		&user.Csnum,
+		&discordID,
+		&banModerator,
+		&banHiddenReason,
+		&user.BanIssued,
+		&user.BanExpires,
+		// &user.VR,
+		// &user.BR,
+	)
 
 	if err != nil {
 		return User{}, err
@@ -406,4 +467,130 @@ func CountTotalUsers(pool *pgxpool.Pool, ctx context.Context) (int, error) {
 	rows.Scan(&count)
 
 	return count, nil
+}
+
+var ratingBoundsMap = map[MKWRatingType]struct {
+	max uint32
+	min uint32
+}{
+	RT_VR:                {max: 1000000, min: 0},
+	RT_BR:                {max: 1000000, min: 0},
+	RT_MMR_RETRO_TRACKS:  {max: 30000, min: 100},
+	RT_MMR_CUSTOM_TRACKS: {max: 30000, min: 100},
+	RT_MMR_VANILLA:       {max: 30000, min: 100},
+}
+
+func ValidateMKWRating(ratingType MKWRatingType, value uint32) error {
+	bounds, ok := ratingBoundsMap[ratingType]
+	if !ok {
+		return ErrInvalidMKWRatingType
+	}
+
+	if value < bounds.min || value > bounds.max {
+		return ErrInvalidMKWRatingValue
+	}
+
+	return nil
+}
+
+func ParseMKWRatingType(typeStr string) (MKWRatingType, error) {
+	switch strings.ToLower(typeStr) {
+	case "vr":
+		return RT_VR, nil
+	case "br":
+		return RT_BR, nil
+	default:
+		return 0, ErrInvalidMKWRatingTypeStr
+	}
+}
+
+func MKWRatingTypeColumn(ratingType MKWRatingType) string {
+	switch ratingType {
+	case RT_MMR_RETRO_TRACKS:
+		return "retro_tracks"
+	case RT_MMR_CUSTOM_TRACKS:
+		return "custom_tracks"
+	case RT_MMR_VANILLA:
+		return "vanilla"
+	case RT_VR:
+		return "mariokartwii_vr"
+	case RT_BR:
+		return "mariokartwii_br"
+	}
+
+	return ""
+}
+
+func GetMKWRating(pool *pgxpool.Pool, ctx context.Context, profileId uint32) (UserMKWRating, error) {
+	globals := GetGlobals()
+
+	ret := UserMKWRating{}
+
+	err := pool.QueryRow(ctx, GetUserVRBR, profileId).Scan(&ret.VR, &ret.BR)
+	if err != nil {
+		return ret, err
+	}
+
+	err = pool.QueryRow(ctx, GetUserMMR, globals.Season, profileId).Scan(&ret.MMR.RetroTracks, &ret.MMR.CustomTracks, &ret.MMR.Vanilla)
+	if errors.Is(err, pgx.ErrNoRows) {
+		ret.MMR.RetroTracks = 100
+		ret.MMR.CustomTracks = 100
+		ret.MMR.Vanilla = 100
+		return ret, nil
+	} else if err != nil {
+		logging.Error("err: ", err)
+		return ret, err
+	}
+
+	return ret, nil
+}
+
+func UpdateMKWVRBR(
+	pool *pgxpool.Pool,
+	ctx context.Context,
+	profileId uint32,
+	vr uint32,
+	br uint32,
+) error {
+	err := ValidateMKWRating(RT_VR, vr)
+	if err != nil {
+		return err
+	}
+
+	err = ValidateMKWRating(RT_BR, vr)
+	if err != nil {
+		return err
+	}
+
+	_, err = pool.Exec(ctx, UpdateUserVRBR, profileId, vr, br)
+
+	return err
+}
+
+func UpdateMKWRating(
+	pool *pgxpool.Pool,
+	ctx context.Context,
+	profileId uint32,
+	ratingType MKWRatingType,
+	value uint32,
+) error {
+	err := ValidateMKWRating(ratingType, value)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Add logging
+	globals := GetGlobals()
+	column := MKWRatingTypeColumn(ratingType)
+
+	if ratingType == RT_VR || ratingType == RT_BR {
+		query := fmt.Sprintf(UpdateUserVRBRSingle, column)
+		_, err := pool.Exec(ctx, query, profileId, value)
+		return err
+	} else {
+		query := fmt.Sprintf(UpdateUserMMR, column, column)
+		logging.Notice("GUH", query)
+		_, err := pool.Exec(ctx, query, globals.Season, profileId, value)
+		return err
+	}
 }

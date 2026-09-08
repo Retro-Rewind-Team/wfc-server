@@ -1,8 +1,11 @@
 package gpcm
 
 import (
+	"errors"
 	"strconv"
+	"strings"
 	"wwfc/common"
+	"wwfc/database"
 	"wwfc/logging"
 	"wwfc/qr2"
 
@@ -87,6 +90,141 @@ func (g *GameSpySession) handleWWFCReport(command common.GameSpyCommand) {
 			}
 
 			qr2.ProcessMKWRaceResult(g.User.ProfileId, value)
+		case "wl:mkw_vrbr":
+			if g.GameName != "mariokartwii" {
+				logging.Warn(g.ModuleName, "Ignoring", keyColored, "from wrong game")
+				continue
+			}
+
+			vr, br, err := parseMKWVRBRRecord(value)
+			if err != nil {
+				logging.Error(g.ModuleName, "Invalid", keyColored, "record:", aurora.Cyan(value), ":", err)
+				continue
+			}
+
+			err = database.UpdateMKWVRBR(pool, ctx, g.User.ProfileId, vr, br)
+			if err != nil {
+				logging.Error(g.ModuleName,
+					"Failed to persist", keyColored, "for",
+					aurora.Cyan(g.User.ProfileId),
+					":", err,
+				)
+				continue
+			}
+
+			logging.Info(g.ModuleName,
+				"Persisted", keyColored, "for",
+				aurora.Cyan(g.User.ProfileId),
+				"vr=", vr,
+				"br=", br,
+			)
+		case "mkw_mmr":
 		}
 	}
+}
+
+var (
+	ErrMalformedEntry = errors.New("entry is malformed")
+	ErrUnknownKey     = errors.New("the provided key must be one of 'vr' or 'br'")
+	ErrMissingVR      = errors.New("record is missing vr entry")
+	ErrMissingBR      = errors.New("record is missing br entry")
+	ErrUnknownMode    = errors.New("the provided mode must be one of 'rt', 'ct', or 'vanilla'")
+	ErrMissingMode    = errors.New("record is missing mode entry")
+	ErrMissingMMR     = errors.New("record is missing mmr entry")
+)
+
+func parseMKWVRBRRecord(value string) (uint32, uint32, error) {
+	var vr uint32
+	vrMatched := false
+	var br uint32
+	brMatched := false
+
+	for split := range strings.SplitSeq(value, "|") {
+		key, raw, ok := strings.Cut(split, "=")
+		if !ok || len(key) == 0 || len(raw) == 0 {
+			return 0, 0, ErrMalformedEntry
+		}
+
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			return 0, 0, err
+		}
+
+		switch key {
+		case "vr":
+			vr = uint32(parsed)
+			vrMatched = true
+		case "br":
+			br = uint32(parsed)
+			brMatched = true
+		default:
+			return 0, 0, ErrUnknownKey
+		}
+	}
+
+	if !vrMatched {
+		return 0, 0, ErrMissingVR
+	}
+
+	if !brMatched {
+		return 0, 0, ErrMissingBR
+	}
+
+	return vr, br, nil
+}
+
+func parseMMRMode(mode string) (database.MKWRatingType, error) {
+	switch mode {
+	case "rt":
+		return database.RT_MMR_RETRO_TRACKS, nil
+	case "ct":
+		return database.RT_MMR_CUSTOM_TRACKS, nil
+	case "vanilla":
+		return database.RT_MMR_VANILLA, nil
+	default:
+		return 0, ErrUnknownMode
+	}
+}
+
+func parseMKWMMRRecord(value string) (database.MKWRatingType, uint32, error) {
+	var ratingType database.MKWRatingType
+	ratingTypeMatched := false
+	var mmr uint32
+	mmrMatched := false
+
+	for split := range strings.SplitSeq(value, "|") {
+		key, raw, ok := strings.Cut(split, "=")
+		if !ok || len(key) == 0 || len(raw) == 0 {
+			return 0, 0, ErrMalformedEntry
+		}
+
+		switch key {
+		case "mode":
+			parsed, err := parseMMRMode(raw)
+			if err != nil {
+				return 0, 0, err
+			}
+
+			ratingType = parsed
+			ratingTypeMatched = true
+		case "mmr":
+			parsed, err := strconv.Atoi(raw)
+			if err != nil {
+				return 0, 0, err
+			}
+
+			mmr = uint32(parsed)
+			mmrMatched = true
+		}
+	}
+
+	if !ratingTypeMatched {
+		return 0, 0, ErrMissingMode
+	}
+
+	if !mmrMatched {
+		return 0, 0, ErrMissingMMR
+	}
+
+	return ratingType, mmr, nil
 }
