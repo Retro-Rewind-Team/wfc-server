@@ -153,8 +153,7 @@ func getGroupsRaw(gameNames []string, groupNames []string) []GroupInfo {
 		}
 
 		if groupInfo.GameName == "mariokartwii" {
-			region := normalizeMKWRegion(groupInfo.PlayersRaw[groupInfo.SortedJoinIndex[0]]["rk"])
-
+			region := getRegion(groupInfo)
 			group.MKWRegion = region
 			groupInfo.MKWRegion = region
 		}
@@ -237,4 +236,22 @@ func GetGroups(gameNames []string, groupNames []string, sorted bool) []GroupInfo
 	}
 
 	return groupsCopy
+}
+
+func getRegion(groupInfo GroupInfo) string {
+	if len(groupInfo.SortedJoinIndex) == 0 {
+		return "unknown"
+	}
+
+	joinIndex, ok := groupInfo.PlayersRaw[groupInfo.SortedJoinIndex[0]]
+	if !ok {
+		return "unknown"
+	}
+
+	rk, ok := joinIndex["rk"]
+	if !ok {
+		return "unknown"
+	}
+
+	return normalizeMKWRegion(rk)
 }
