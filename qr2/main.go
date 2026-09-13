@@ -225,7 +225,7 @@ func handleConnection(conn net.PacketConn, addr net.UDPAddr, buffer []byte, n in
 
 	case AvailableRequest:
 		// Expect a null terminated string
-		if buffer[n-1] != 0 {
+		if n-1 < 5 || buffer[n-1] != 0 {
 			return
 		}
 
