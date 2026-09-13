@@ -129,6 +129,14 @@ func Shutdown() {
 }
 
 func handleConnection(conn net.PacketConn, addr net.UDPAddr, buffer []byte, n int) {
+	moduleName := "QR2:" + addr.String()
+
+	defer func() {
+		if r := recover(); r != nil {
+			logging.Error(moduleName, "Panic:", r)
+		}
+	}()
+
 	defer waitGroup.Done()
 
 	packetType := buffer[0]
@@ -137,8 +145,6 @@ func handleConnection(conn net.PacketConn, addr net.UDPAddr, buffer []byte, n in
 	if packetType > ClientKickPeerOrder {
 		return
 	}
-
-	moduleName := "QR2:" + addr.String()
 
 	var session *Session
 	if packetType != HeartbeatRequest && packetType != AvailableRequest {
