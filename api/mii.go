@@ -32,18 +32,11 @@ func HandleMii(req any, v bool, r *http.Request) (any, int, error) {
 	}
 
 	var mii string
-	var err error = nil
 
-	if v {
-		mii = database.GetMKWFriendInfo(pool, ctx, _req.ProfileID)
-	} else {
-		mii, err = database.GetMKWFriendInfoSanitized(pool, ctx, _req.ProfileID)
-	}
+	mii = database.GetMKWFriendInfo(pool, ctx, _req.ProfileID)
 
-	if mii == "" && err == nil {
+	if mii == "" {
 		return res, http.StatusInternalServerError, ErrUserQuery
-	} else if err != nil {
-		return res, http.StatusInternalServerError, err
 	}
 
 	res.Mii = mii
