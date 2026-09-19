@@ -71,6 +71,7 @@ var commonDeviceIds = []uint32{
 	// Publicly shared key dumps
 	0x02023f0a,
 	0x0204cef9,
+	0x021CE4EF,
 	0x038c864b,
 	0x040e3f97,
 	0x0411bbe5,
