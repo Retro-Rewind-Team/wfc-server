@@ -10,7 +10,7 @@ import (
 )
 
 func (session *NATNEGSession) handleReport(conn net.PacketConn, addr net.Addr, buffer []byte, _moduleName string, version byte) {
-	if len(buffer) < 2 {
+	if len(buffer) < 9 {
 		logging.Error(_moduleName, "Invalid packet size")
 		return
 	}
