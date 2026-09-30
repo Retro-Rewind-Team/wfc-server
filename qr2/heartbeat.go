@@ -103,12 +103,17 @@ func heartbeat(moduleName string, conn net.PacketConn, addr net.UDPAddr, buffer 
 		mutex.Lock()
 		sessionPtr, sessionExists := sessions[lookupAddr]
 		if !sessionExists {
+			mutex.Unlock()
 			logging.Error(moduleName, "Session not found")
-		} else if sessionPtr.login == nil {
+			return
+		}
+
+		if sessionPtr.login == nil {
 			profileId := unknowns[0]
 			logging.Info(moduleName, "Attempting to use unknown as profile ID", aurora.Cyan(profileId))
 			sessionPtr.setProfileID(moduleName, profileId, "")
 		}
+
 		session = *sessionPtr
 		mutex.Unlock()
 	}
