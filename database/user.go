@@ -291,10 +291,15 @@ func GetMKWFriendInfo(pool *pgxpool.Pool, ctx context.Context, profileId uint32)
 		return ""
 	}
 
-	return info
+	sanitized, err := sanitizeMKWFriendInfo(info)
+	if err != nil {
+		return ""
+	}
+
+	return sanitized
 }
 
-func sanitizeMKWFriendInfo(mii string, sysID bool) (string, error) {
+func sanitizeMKWFriendInfo(mii string) (string, error) {
 	miiBytes, err := base64.StdEncoding.DecodeString(mii)
 
 	if err != nil {
@@ -305,11 +310,9 @@ func sanitizeMKWFriendInfo(mii string, sysID bool) (string, error) {
 	miiBytes[0x00] &= 0b11000000
 	miiBytes[0x01] &= 0b00011111
 
-	if sysID {
-		for i := range 4 {
-			// Zero sysid
-			miiBytes[0x1C+i] = 0
-		}
+	for i := range 4 {
+		// Zero sysid
+		miiBytes[0x1C+i] = 0
 	}
 
 	// Zero creation timestamp
@@ -327,21 +330,9 @@ func sanitizeMKWFriendInfo(mii string, sysID bool) (string, error) {
 	return base64.RawStdEncoding.EncodeToString(miiBytes), nil
 }
 
-// GetMKWFriendInfoSanitized Returns the b64 representation of a mii with the birthdate, creation date, creator, and sysid removed
-func GetMKWFriendInfoSanitized(pool *pgxpool.Pool, ctx context.Context, profileId uint32) (string, error) {
-	mii := GetMKWFriendInfo(pool, ctx, profileId)
-
-	if mii == "" {
-		return "", ErrFailedToGetMKWFriend
-	}
-
-	return sanitizeMKWFriendInfo(mii, true)
-}
-
 func UpdateMKWFriendInfo(pool *pgxpool.Pool, ctx context.Context, profileId uint32, info string) error {
-	// We save with sysID for moderator usage. Payload should sanitize
-	// everything here but we re-sanitize just in case.
-	sanitizedInfo, err := sanitizeMKWFriendInfo(info, false)
+	// Payload should sanitize everything here but we re-sanitize just in case.
+	sanitizedInfo, err := sanitizeMKWFriendInfo(info)
 	if err != nil {
 		return err
 	}
