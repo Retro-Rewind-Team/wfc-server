@@ -56,7 +56,7 @@ exact Code.pul. See the [Note](#note)
 
 ##### pulsar-tools
 1. Download the latest release of
-   [pulsar-toos](https://github.com/ppebb/pulsar-tools/releases).
+   [pulsar-tools](https://github.com/ppebb/pulsar-tools/releases).
 2. Run the hash command, and supply your Code.pul
 3. Manually insert the hashes returned by pulsar-tools into your database
 4. The database contains a hashes table, which contains the fields pack_id, version, hash_pal, hash_ntscu, hash_ntscj, hash_ntsck. Insert according to these fields.
