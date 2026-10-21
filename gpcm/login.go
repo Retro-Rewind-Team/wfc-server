@@ -78,6 +78,7 @@ var commonDeviceIds = []uint32{
 	0x04cb7515,
 	0x066deb49,
 	0x06bcc32d,
+	0x06c4b1e6,
 	0x06d0437a,
 	0x0812f46b,
 	0x089120c8,
