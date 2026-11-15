@@ -449,6 +449,9 @@ func ProcessUSER(senderPid uint32, senderIP uint64, packet []byte) {
 		session.Data["+mii"+strconv.Itoa(i)] = miiData[i]
 		session.Data["+mii_name"+strconv.Itoa(i)] = name
 	}
+
+	// Only the country: 0xb1-0xb7 hold state, city and coordinates, which stay private
+	session.Data["+country"] = strconv.Itoa(int(packet[0xb0]))
 }
 
 // findNewServer attempts to find the new server/host in the group when the current server goes down.
