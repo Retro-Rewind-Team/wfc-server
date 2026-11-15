@@ -26,6 +26,7 @@ type PlayerInfo struct {
 	BattleELO  string    `json:"eb,omitempty"`
 	Mii        []MiiInfo `json:"mii,omitempty"`
 	OpenHost   string    `json:"openhost,omitempty"`
+	Country    string    `json:"country,omitempty"`
 }
 
 type GroupInfo struct {
@@ -187,6 +188,7 @@ func GetGroups(gameNames []string, groupNames []string, sorted bool) []GroupInfo
 			if rawPlayer["gamename"] == "mariokartwii" {
 				playerInfo.VersusELO = rawPlayer["ev"]
 				playerInfo.BattleELO = rawPlayer["eb"]
+				playerInfo.Country = rawPlayer["+country"]
 			}
 
 			for i := 0; i < 32; i++ {
