@@ -52,7 +52,7 @@ type ErrorToken struct {
 }
 
 func NewErrorToken(err string) *ErrorToken {
-	return &ErrorToken{EmptyToken{CatOther, fmt.Errorf(err)}}
+	return &ErrorToken{EmptyToken{CatOther, fmt.Errorf("%s", err)}}
 }
 
 type NumberToken struct {
