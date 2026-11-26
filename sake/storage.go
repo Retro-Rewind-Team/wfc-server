@@ -244,7 +244,7 @@ func getMyRecords(moduleName string, profileId uint32, gameInfo common.GameInfo,
 		return &errorResponse
 
 	case "mariokartwii/FriendInfo":
-		mii, _ := database.GetMKWFriendInfoSanitized(pool, ctx, profileId)
+		mii := database.GetMKWFriendInfo(pool, ctx, profileId)
 		// Mario Kart Wii friend info
 		values = map[string]StorageValue{
 			"ownerid":  uintValue(profileId),
@@ -336,7 +336,7 @@ func searchForRecords(moduleName string, gameInfo common.GameInfo, request Stora
 			return &errorResponse
 		}
 
-		mii, _ := database.GetMKWFriendInfoSanitized(pool, ctx, uint32(ownerId))
+		mii := database.GetMKWFriendInfo(pool, ctx, uint32(ownerId))
 		values = []map[string]StorageValue{
 			{
 				"ownerid":  uintValue(uint32(ownerId)),
