@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/gob"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -51,9 +52,32 @@ type Group struct {
 	MKWRaceNumber    int
 	MKWCourseID      int
 	MKWEngineClassID int
+
+	// trackPickHistory is not exported so it isn't saved and it's empty on restart
+	trackPickHistory []trackPick
+}
+
+type trackPick struct {
+	pickTime      time.Time
+	raceNumber    int
+	courseID      int
+	engineClassID int
 }
 
 var groups = map[string]*Group{}
+
+// maxTrackPickHistory is 8 so that it can cover 4 races each from a split room
+const maxTrackPickHistory = 8
+
+// raceTimeLimitSeconds is when the game ends online races.
+// Players still racing report a projected (> 300s) or penalty time (~20min) so these
+// can't be trusted
+const raceTimeLimitSeconds = 300
+
+// minRacersForResultAdjustment is to make sure that any races with less than 3 players
+// are not checked for result adjustment as in some scenarios, the loser's result can arrive
+// before the winner's which will cause a misfile
+const minRacersForResultAdjustment = 3
 
 func normalizeMKWRegion(rk string) string {
 	// Check and remove regional searches due to the limited player count
@@ -532,6 +556,18 @@ func ProcessMKWSelectRecord(profileId uint32, key string, value string) {
 		group.MKWRaceNumber++
 		group.MKWCourseID = int(courseId)
 		group.MKWEngineClassID = -1
+
+		group.trackPickHistory = append(group.trackPickHistory, trackPick{
+			pickTime:      time.Now(),
+			raceNumber:    group.MKWRaceNumber,
+			courseID:      group.MKWCourseID,
+			engineClassID: group.MKWEngineClassID,
+		})
+
+		if len(group.trackPickHistory) > maxTrackPickHistory {
+			group.trackPickHistory = group.trackPickHistory[len(group.trackPickHistory)-maxTrackPickHistory:]
+		}
+
 		return
 
 	case "wl:mkw_select_cc":
@@ -547,6 +583,12 @@ func ProcessMKWSelectRecord(profileId uint32, key string, value string) {
 		defer mutex.Unlock()
 
 		group.MKWEngineClassID = int(ccId)
+
+		if len(group.trackPickHistory) == 0 {
+			return
+		}
+
+		group.trackPickHistory[len(group.trackPickHistory)-1].engineClassID = group.MKWEngineClassID
 		return
 	}
 
@@ -700,6 +742,8 @@ func ProcessMKWRaceStage(profileId uint32, value string) {
 func ProcessMKWRaceResult(profileId uint32, value string) {
 	moduleName := "QR2:MKWRaceResult:" + strconv.FormatUint(uint64(profileId), 10)
 
+	resultArrivalTime := time.Now()
+
 	mutex.Lock()
 	login := logins[profileId]
 	if login == nil {
@@ -806,12 +850,47 @@ func ProcessMKWRaceResult(profileId uint32, value string) {
 		return
 	}
 
+	raceNumber := group.MKWRaceNumber
+	courseID := group.MKWCourseID
+	engineClassID := group.MKWEngineClassID
+
+	track, found := findTrackPick(group.trackPickHistory, resultArrivalTime, finishTime)
+
+	// If a race ends early, the player in last is given a projected finish time
+	// which can be less than 300s.
+	// This projected time is longer than the time they raced for which could put the estimated start time before the
+	// current races selection time.
+	// To avoid this scenario getting filed in the previous race, only move the result if no other results have come in.
+	// Since this is for a player who didn't finish, we know other players results will have arrived before theirs.
+	// A genuinely late result from a previous race would arrive before the current race's results.
+	// We also want to check that there are 3 or more racers in the room as when a 2 player room finishes, the loser
+	// could have their cut-off time arrive before the winners which would cause it to be filed under the previous race.
+	if found &&
+		track.raceNumber != group.MKWRaceNumber &&
+		len(raceResults[group.GroupName][group.MKWRaceNumber]) == 0 &&
+		playerCount >= minRacersForResultAdjustment {
+
+		raceNumber = track.raceNumber
+		courseID = track.courseID
+		engineClassID = track.engineClassID
+
+		logging.Info(moduleName,
+			"Player result for group", aurora.Cyan(group.GroupName),
+			"filed under earlier race", aurora.Cyan(raceNumber),
+			"vs", aurora.Cyan(group.MKWRaceNumber),
+			"(current) for course", aurora.Cyan(courseID),
+			"vs", aurora.Cyan(group.MKWCourseID),
+			"(current) with race time", aurora.Cyan(fmt.Sprintf("%.3f", math.Float32frombits(finishTime))),
+			"s",
+		)
+	}
+
 	if raceResults[group.GroupName] == nil {
 		raceResults[group.GroupName] = map[int][]RaceResult{}
 
 	}
 
-	raceResults[group.GroupName][group.MKWRaceNumber] = append(raceResults[group.GroupName][group.MKWRaceNumber], RaceResult{
+	raceResults[group.GroupName][raceNumber] = append(raceResults[group.GroupName][raceNumber], RaceResult{
 		ProfileID:   profileId,
 		PlayerID:    hudId,
 		FinishTime:  finishTime,
@@ -821,9 +900,32 @@ func ProcessMKWRaceResult(profileId uint32, value string) {
 		FinishPos:   finishPosition,
 		FramesIn1st: framesIn1st,
 		// Redundant but efficient to store these here
-		CourseID:      group.MKWCourseID,
-		EngineClassID: group.MKWEngineClassID,
+		CourseID:      courseID,
+		EngineClassID: engineClassID,
 	})
+}
+
+// findTrackPick looks through the trackPickHistory and returns true with the latest
+// pick made at or before the estimated race start (race result arrival time - race duration).
+// Returns an empty trackPick and false if none were found or if the finishTime is not believable.
+func findTrackPick(trackPickHistory []trackPick, resultArrivalTime time.Time, finishTime uint32) (trackPick, bool) {
+	finishTimeSeconds := math.Float32frombits(finishTime)
+
+	if math.IsNaN(float64(finishTimeSeconds)) || math.IsInf(float64(finishTimeSeconds), 0) || finishTimeSeconds <= 0 || finishTimeSeconds > raceTimeLimitSeconds {
+		return trackPick{}, false
+	}
+
+	raceDuration := time.Duration(float64(finishTimeSeconds) * float64(time.Second))
+	estimatedRaceStart := resultArrivalTime.Add(-raceDuration)
+
+	for i := len(trackPickHistory) - 1; i >= 0; i-- {
+		track := trackPickHistory[i]
+		if !track.pickTime.After(estimatedRaceStart) {
+			return track, true
+		}
+	}
+
+	return trackPick{}, false
 }
 
 func GetRaceResultsForGroup(groupName string) (map[int][]RaceResult, map[uint32][]RacePlayer) {
